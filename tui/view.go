@@ -7,6 +7,11 @@ import (
 
 func (m Model) View() tea.View {
 	currentMenu := m.currentMenu()
+	helpText := "↑/↓ or j/k to move • enter to select • q to quit"
+
+	if m.audioURL != "" {
+		helpText += " • p to play audio"
+	}
 
 	var menuItems []string
 
@@ -27,7 +32,7 @@ func (m Model) View() tea.View {
 		titleStyle.Render(currentMenu.title),
 		"",
 		menu,
-		helpStyle.Render("↑/↓ or j/k to move • enter to select • q to quit"),
+		helpStyle.Render(helpText),
 	}
 
 	if m.message != "" {

@@ -15,6 +15,7 @@ type Model struct {
 	cursor           int
 	message          string
 	dictionaryResult string
+	audioURL         string
 }
 
 func InitialModel() Model {
@@ -31,7 +32,7 @@ func InitialModel() Model {
 			testMenu: {
 				title: "Test Menu",
 				items: []string{
-					"word",
+					"random word",
 					"option 2",
 					"back",
 				},

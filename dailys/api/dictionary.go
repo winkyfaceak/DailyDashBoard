@@ -4,7 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"time"
 )
+
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 type DictionaryEntry struct {
 	Word      string     `json:"word"`
@@ -32,16 +38,18 @@ type Definition struct {
 }
 
 func DictionarySet(language string, word string) ([]DictionaryEntry, error) {
-	url := "https://api.dictionaryapi.dev/api/v2/entries/" + language + "/" + word
+	endpoint := fmt.Sprintf(
+		"https://api.dictionaryapi.dev/api/v2/entries/%s/%s",
+		url.PathEscape(language),
+		url.PathEscape(word),
+	)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating dictionary request: %w", err)
 	}
 
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending dictionary request: %w", err)
 	}

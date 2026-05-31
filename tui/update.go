@@ -13,9 +13,24 @@ type dictionaryResultMsg struct {
 	Err     error
 }
 
+type audioPlaybackMsg struct {
+	Err error
+}
+
 func fetchDictionaryCmd(language string, word string) tea.Cmd {
 	return func() tea.Msg {
 		entries, err := api.DictionarySet(language, word)
+
+		return dictionaryResultMsg{
+			Entries: entries,
+			Err:     err,
+		}
+	}
+}
+
+func fetchRandomDictionaryCmd(language string) tea.Cmd {
+	return func() tea.Msg {
+		entries, err := api.RandomDictionarySet(language)
 
 		return dictionaryResultMsg{
 			Entries: entries,
@@ -31,17 +46,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Dictionary error: %v", msg.Err)
 			m.dictionaryResult = ""
+			m.audioURL = ""
 			return m, nil
 		}
 
 		if len(msg.Entries) == 0 {
 			m.message = "No dictionary entries found."
 			m.dictionaryResult = ""
+			m.audioURL = ""
 			return m, nil
 		}
 
+		entry := msg.Entries[0]
 		m.message = ""
-		m.dictionaryResult = formatDictionaryEntry(msg.Entries[0])
+		m.audioURL = firstAudio(entry.Phonetics)
+		m.dictionaryResult = formatDictionaryEntry(entry)
+
+		return m, nil
+
+	case audioPlaybackMsg:
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Audio error: %v", msg.Err)
+			return m, nil
+		}
+
+		m.message = "Played pronunciation."
 
 		return m, nil
 
@@ -60,6 +89,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.cursor < len(items)-1 {
 				m.cursor++
+			}
+
+		case "p":
+			if m.audioURL != "" {
+				m.message = "Playing pronunciation..."
+				return m, playAudioCmd(m.audioURL)
 			}
 
 		case "enter":
@@ -86,10 +121,11 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 
 	case testMenu:
 		switch selected {
-		case "word":
-			m.message = "Searching dictionary..."
+		case "random word":
+			m.message = "Searching for a random word..."
 			m.dictionaryResult = ""
-			return m, fetchDictionaryCmd("en", "hello")
+			m.audioURL = ""
+			return m, fetchRandomDictionaryCmd("en")
 
 		case "back":
 			m = m.goTo(mainMenu)
@@ -97,6 +133,7 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 		default:
 			m.message = fmt.Sprintf("You selected from test menu: %s", selected)
 			m.dictionaryResult = ""
+			m.audioURL = ""
 		}
 	}
 
@@ -125,7 +162,7 @@ func formatDictionaryEntry(entry api.DictionaryEntry) string {
 	audio := firstAudio(entry.Phonetics)
 	if audio != "" {
 		builder.WriteString(labelStyle.Render("Audio: "))
-		builder.WriteString(audio)
+		builder.WriteString(exampleStyle.Underline(true).Hyperlink(audio).Render("play pronunciation"))
 		builder.WriteString("\n")
 	}
 

@@ -14,5 +14,6 @@ func (m Model) goTo(s screen) Model {
 	m.cursor = 0
 	m.message = ""
 	m.dictionaryResult = ""
+	m.audioURL = ""
 	return m
 }
