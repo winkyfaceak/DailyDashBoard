@@ -5,11 +5,11 @@ type menu struct {
 	items []string
 }
 
-func (m model) currentMenu() menu {
+func (m Model) currentMenu() menu {
 	return m.menus[m.screen]
 }
 
-func (m model) goTo(s screen) model {
+func (m Model) goTo(s screen) Model {
 	m.screen = s
 	m.cursor = 0
 	m.message = ""

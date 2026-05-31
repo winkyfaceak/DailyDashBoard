@@ -9,15 +9,15 @@ const (
 	testMenu
 )
 
-type model struct {
+type Model struct {
 	screen  screen
 	menus   map[screen]menu
 	cursor  int
 	message string
 }
 
-func InitialModel() model {
-	return model{
+func InitialModel() Model {
+	return Model{
 		screen: mainMenu,
 		menus: map[screen]menu{
 			mainMenu: {
@@ -30,7 +30,7 @@ func InitialModel() model {
 			testMenu: {
 				title: "Test Menu",
 				items: []string{
-					"time",
+					"word",
 					"option 2",
 					"back",
 				},
@@ -40,6 +40,6 @@ func InitialModel() model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func (m model) View() tea.View {
+func (m Model) View() tea.View {
 	currentMenu := m.currentMenu()
 
 	var menuItems []string
