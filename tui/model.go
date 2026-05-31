@@ -15,6 +15,9 @@ type Model struct {
 	cursor           int
 	message          string
 	dictionaryResult string
+	artworkResult    string
+	pendingArtwork   string
+	artworkImageURL  string
 	audioURL         string
 }
 
@@ -33,7 +36,7 @@ func InitialModel() Model {
 				title: "Test Menu",
 				items: []string{
 					"random word",
-					"option 2",
+					"random artwork",
 					"back",
 				},
 			},

@@ -21,6 +21,14 @@ func playAudioCmd(audioURL string) tea.Cmd {
 	}
 }
 
+func openExternalURLCmd(targetURL string) tea.Cmd {
+	return func() tea.Msg {
+		return externalOpenMsg{
+			Err: openURL(targetURL),
+		}
+	}
+}
+
 func playAudio(audioURL string) error {
 	audioURL = strings.TrimSpace(audioURL)
 	if audioURL == "" {
@@ -45,7 +53,7 @@ func playAudio(audioURL string) error {
 		}
 	}
 
-	return openAudioURL(audioURL)
+	return openURL(audioURL)
 }
 
 func downloadAndPlayWithAFPlay(audioURL string) error {
@@ -93,20 +101,25 @@ func audioPlayerCommands(audioURL string) [][]string {
 	}
 }
 
-func openAudioURL(audioURL string) error {
+func openURL(targetURL string) error {
+	targetURL = strings.TrimSpace(targetURL)
+	if targetURL == "" {
+		return fmt.Errorf("no URL is available")
+	}
+
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", audioURL)
+		cmd = exec.Command("open", targetURL)
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", audioURL)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", targetURL)
 	default:
 		if _, err := exec.LookPath("xdg-open"); err != nil {
-			return fmt.Errorf("no terminal audio player or URL opener was found")
+			return fmt.Errorf("no URL opener was found")
 		}
 
-		cmd = exec.Command("xdg-open", audioURL)
+		cmd = exec.Command("xdg-open", targetURL)
 	}
 
 	return cmd.Start()

@@ -13,6 +13,10 @@ func (m Model) View() tea.View {
 		helpText += " • p to play audio"
 	}
 
+	if m.artworkImageURL != "" {
+		helpText += " • o to open image"
+	}
+
 	var menuItems []string
 
 	for i, choice := range currentMenu.items {
@@ -41,6 +45,10 @@ func (m Model) View() tea.View {
 
 	if m.dictionaryResult != "" {
 		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.dictionaryResult))
+	}
+
+	if m.artworkResult != "" {
+		contentParts = append(contentParts, artworkBoxStyle.Render(m.artworkResult))
 	}
 
 	content := lipgloss.JoinVertical(

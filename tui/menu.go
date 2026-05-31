@@ -14,6 +14,9 @@ func (m Model) goTo(s screen) Model {
 	m.cursor = 0
 	m.message = ""
 	m.dictionaryResult = ""
+	m.artworkResult = ""
+	m.pendingArtwork = ""
+	m.artworkImageURL = ""
 	m.audioURL = ""
 	return m
 }

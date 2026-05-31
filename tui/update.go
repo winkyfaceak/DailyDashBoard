@@ -17,6 +17,10 @@ type audioPlaybackMsg struct {
 	Err error
 }
 
+type externalOpenMsg struct {
+	Err error
+}
+
 func fetchDictionaryCmd(language string, word string) tea.Cmd {
 	return func() tea.Msg {
 		entries, err := api.DictionarySet(language, word)
@@ -46,6 +50,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Dictionary error: %v", msg.Err)
 			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
 			m.audioURL = ""
 			return m, nil
 		}
@@ -53,6 +60,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(msg.Entries) == 0 {
 			m.message = "No dictionary entries found."
 			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
 			m.audioURL = ""
 			return m, nil
 		}
@@ -61,6 +71,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = ""
 		m.audioURL = firstAudio(entry.Phonetics)
 		m.dictionaryResult = formatDictionaryEntry(entry)
+		m.artworkResult = ""
+		m.pendingArtwork = ""
+		m.artworkImageURL = ""
+
+		return m, nil
+
+	case artworkResultMsg:
+		m.audioURL = ""
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Artwork error: %v", msg.Err)
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
+			return m, nil
+		}
+
+		m.message = ""
+		m.dictionaryResult = ""
+		m.pendingArtwork = ""
+		m.artworkImageURL = preferredArtworkImageURL(msg.Artwork)
+
+		readyResult := formatArtwork(msg.Artwork, msg.Image.Text)
+		if msg.Image.Raw != "" {
+			m.artworkResult = formatArtwork(msg.Artwork, subtleTextStyle.Render("Rendering high-quality image..."))
+			m.pendingArtwork = readyResult
+
+			return m, tea.Sequence(
+				tea.Raw(msg.Image.Raw),
+				func() tea.Msg { return artworkImageReadyMsg{} },
+			)
+		}
+
+		m.artworkResult = readyResult
+
+		return m, nil
+
+	case artworkImageReadyMsg:
+		if m.pendingArtwork != "" {
+			m.artworkResult = m.pendingArtwork
+			m.pendingArtwork = ""
+		}
 
 		return m, nil
 
@@ -71,6 +123,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.message = "Played pronunciation."
+
+		return m, nil
+
+	case externalOpenMsg:
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Open image error: %v", msg.Err)
+			return m, nil
+		}
+
+		m.message = "Opened full artwork image."
 
 		return m, nil
 
@@ -95,6 +157,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.audioURL != "" {
 				m.message = "Playing pronunciation..."
 				return m, playAudioCmd(m.audioURL)
+			}
+
+		case "o":
+			if m.artworkImageURL != "" {
+				m.message = "Opening full artwork image..."
+				return m, openExternalURLCmd(m.artworkImageURL)
 			}
 
 		case "enter":
@@ -124,8 +192,20 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 		case "random word":
 			m.message = "Searching for a random word..."
 			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
 			m.audioURL = ""
 			return m, fetchRandomDictionaryCmd("en")
+
+		case "random artwork":
+			m.message = "Fetching artwork..."
+			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
+			m.audioURL = ""
+			return m, fetchArtworkCmd()
 
 		case "back":
 			m = m.goTo(mainMenu)
@@ -133,6 +213,9 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 		default:
 			m.message = fmt.Sprintf("You selected from test menu: %s", selected)
 			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
 			m.audioURL = ""
 		}
 	}
