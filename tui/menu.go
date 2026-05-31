@@ -13,5 +13,6 @@ func (m Model) goTo(s screen) Model {
 	m.screen = s
 	m.cursor = 0
 	m.message = ""
+	m.dictionaryResult = ""
 	return m
 }

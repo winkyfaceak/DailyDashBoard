@@ -34,6 +34,10 @@ func (m Model) View() tea.View {
 		contentParts = append(contentParts, messageStyle.Render(m.message))
 	}
 
+	if m.dictionaryResult != "" {
+		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.dictionaryResult))
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		contentParts...,

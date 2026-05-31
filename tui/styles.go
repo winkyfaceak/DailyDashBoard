@@ -10,7 +10,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#7D56F4")).
 			Padding(1, 2).
-			Width(40)
+			Width(100)
 
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -34,4 +34,29 @@ var (
 	messageStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#04B575")).
 			MarginTop(1)
+
+	dictionaryBoxStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#04B575")).
+				Padding(1, 2).
+				MarginTop(1).
+				Width(70)
+
+	wordStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")).
+			Padding(0, 1)
+
+	labelStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4"))
+
+	partOfSpeechStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#04B575"))
+
+	exampleStyle = lipgloss.NewStyle().
+			Italic(true).
+			Foreground(lipgloss.Color("#A8A8A8"))
 )

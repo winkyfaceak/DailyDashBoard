@@ -10,10 +10,11 @@ const (
 )
 
 type Model struct {
-	screen  screen
-	menus   map[screen]menu
-	cursor  int
-	message string
+	screen           screen
+	menus            map[screen]menu
+	cursor           int
+	message          string
+	dictionaryResult string
 }
 
 func InitialModel() Model {
