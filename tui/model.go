@@ -1,4 +1,4 @@
-package main
+package tui
 
 import tea "charm.land/bubbletea/v2"
 
@@ -16,7 +16,7 @@ type model struct {
 	message string
 }
 
-func initialModel() model {
+func InitialModel() model {
 	return model{
 		screen: mainMenu,
 		menus: map[screen]menu{

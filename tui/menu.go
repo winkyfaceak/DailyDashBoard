@@ -1,4 +1,4 @@
-package main
+package tui
 
 type menu struct {
 	title string

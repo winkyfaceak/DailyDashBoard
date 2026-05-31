@@ -1,6 +1,7 @@
 package main
 
 import (
+	"DailyDashBoard/tui"
 	"fmt"
 	"os"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func main() {
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(tui.InitialModel())
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("error: %s\n", err)
