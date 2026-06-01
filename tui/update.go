@@ -17,17 +17,6 @@ type externalOpenMsg struct {
 	Err error
 }
 
-func fetchDictionaryCmd(language string, word string) tea.Cmd {
-	return func() tea.Msg {
-		entries, err := api.DictionarySet(language, word)
-
-		return dictionaryResultMsg{
-			Entries: entries,
-			Err:     err,
-		}
-	}
-}
-
 func fetchRandomDictionaryCmd(language string) tea.Cmd {
 	return func() tea.Msg {
 		entries, err := api.RandomDictionarySet(language)
@@ -43,39 +32,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case dictionaryResultMsg:
+		m = m.clearResultContent()
+
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Dictionary error: %v", msg.Err)
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.musicResult = ""
-			m.pendingMusic = ""
-			m.musicImageURL = ""
-			m.musicTrackURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
-			m.audioLabel = ""
-			m.audioAllowDownload = false
 			return m, nil
 		}
 
 		if len(msg.Entries) == 0 {
 			m.message = "No dictionary entries found."
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.musicResult = ""
-			m.pendingMusic = ""
-			m.musicImageURL = ""
-			m.musicTrackURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
-			m.audioLabel = ""
-			m.audioAllowDownload = false
 			return m, nil
 		}
 
@@ -85,45 +50,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.audioLabel = "pronunciation"
 		m.audioAllowDownload = true
 		m.dictionaryResult = formatDictionaryEntry(entry)
-		m.artworkResult = ""
-		m.pendingArtwork = ""
-		m.artworkImageURL = ""
-		m.musicResult = ""
-		m.pendingMusic = ""
-		m.musicImageURL = ""
-		m.musicTrackURL = ""
-		m.newsResult = ""
-		m.newsLinks = nil
 
 		return m, nil
 
 	case artworkResultMsg:
-		m.audioURL = ""
-		m.audioLabel = ""
-		m.audioAllowDownload = false
-		m.musicResult = ""
-		m.pendingMusic = ""
-		m.musicImageURL = ""
-		m.musicTrackURL = ""
-		m.newsResult = ""
-		m.newsLinks = nil
+		m = m.clearResultContent()
 
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Artwork error: %v", msg.Err)
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
 			return m, nil
 		}
 
 		m.message = ""
-		m.dictionaryResult = ""
-		m.pendingArtwork = ""
 		m.artworkImageURL = preferredArtworkImageURL(msg.Artwork)
-		m.musicResult = ""
-		m.pendingMusic = ""
-		m.musicImageURL = ""
-		m.musicTrackURL = ""
 
 		readyResult := formatArtwork(msg.Artwork, msg.Image.Text)
 		if msg.Image.Raw != "" {
@@ -141,19 +80,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case newsResultMsg:
-		m.audioURL = ""
-		m.audioLabel = ""
-		m.audioAllowDownload = false
-		m.dictionaryResult = ""
-		m.artworkResult = ""
-		m.pendingArtwork = ""
-		m.artworkImageURL = ""
-		m.musicResult = ""
-		m.pendingMusic = ""
-		m.musicImageURL = ""
-		m.musicTrackURL = ""
-		m.newsResult = ""
-		m.newsLinks = nil
+		m = m.clearResultContent()
 
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("News error: %v", msg.Err)
@@ -172,22 +99,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case musicResultMsg:
-		m.audioURL = ""
-		m.audioLabel = ""
-		m.audioAllowDownload = false
-		m.dictionaryResult = ""
-		m.artworkResult = ""
-		m.pendingArtwork = ""
-		m.artworkImageURL = ""
-		m.newsResult = ""
-		m.newsLinks = nil
+		m = m.clearResultContent()
 
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Music error: %v", msg.Err)
-			m.musicResult = ""
-			m.pendingMusic = ""
-			m.musicImageURL = ""
-			m.musicTrackURL = ""
 			return m, nil
 		}
 
@@ -431,6 +346,14 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 func (m Model) clearContent() Model {
 	m.stopAudio()
 	m.audioRequestID++
+
+	m = m.clearResultContent()
+	m.audioStarting = false
+
+	return m
+}
+
+func (m Model) clearResultContent() Model {
 	m.dictionaryResult = ""
 	m.artworkResult = ""
 	m.pendingArtwork = ""
@@ -444,7 +367,6 @@ func (m Model) clearContent() Model {
 	m.audioURL = ""
 	m.audioLabel = ""
 	m.audioAllowDownload = false
-	m.audioStarting = false
 
 	return m
 }

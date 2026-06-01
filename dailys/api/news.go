@@ -13,8 +13,6 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-const newsUserAgent = "DailyDashBoard/1.0"
-
 var newsHTMLTagPattern = regexp.MustCompile(`<[^>]+>`)
 
 type NewsFeed struct {
@@ -45,7 +43,7 @@ func DailyNews(feeds []NewsFeed, limit int) ([]NewsItem, error) {
 
 	parser := gofeed.NewParser()
 	parser.Client = httpClient
-	parser.UserAgent = newsUserAgent
+	parser.UserAgent = apiUserAgent
 
 	var items []NewsItem
 	var feedErrors []string

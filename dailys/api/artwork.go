@@ -17,7 +17,6 @@ const (
 	articImageMirrorURL  = "https://lakeimagesweb.artic.edu/iiif/2"
 	articSearchLimit     = 100
 	articMaxSearchResult = 1000
-	articUserAgent       = "DailyDashBoard/1.0"
 )
 
 type Artwork struct {
@@ -194,7 +193,7 @@ func getArtworkJSON(endpoint string, target any) error {
 
 	req.Header.Set("AIC-User-Agent", "DailyDashBoard")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", articUserAgent)
+	req.Header.Set("User-Agent", apiUserAgent)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

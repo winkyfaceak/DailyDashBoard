@@ -127,7 +127,7 @@ func searchITunesSongs(term string) ([]itunesTrack, error) {
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "DailyDashBoard/1.0")
+	req.Header.Set("User-Agent", apiUserAgent)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
