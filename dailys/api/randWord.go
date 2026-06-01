@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -11,95 +12,23 @@ import (
 )
 
 const (
-	randomWordURL        = "https://random-word-api.herokuapp.com/word"
-	randomWordAPITimeout = 2 * time.Second
+	legacyRandomWordURL  = "https://random-word-api.herokuapp.com/word"
+	randomWordAPITimeout = 10 * time.Second
 )
 
-var englishRandomWords = []string{
-	"abundance",
-	"adventure",
-	"anchor",
-	"aperture",
-	"blossom",
-	"cadence",
-	"catalyst",
-	"clarity",
-	"compass",
-	"constellation",
-	"curious",
-	"diligent",
-	"dusk",
-	"echo",
-	"eloquent",
-	"ember",
-	"empathy",
-	"evergreen",
-	"flourish",
-	"gentle",
-	"glimmer",
-	"gratitude",
-	"harbor",
-	"harmony",
-	"horizon",
-	"insight",
-	"intricate",
-	"jubilant",
-	"lantern",
-	"legacy",
-	"luminous",
-	"meadow",
-	"momentum",
-	"mosaic",
-	"nimble",
-	"nuance",
-	"orchard",
-	"patience",
-	"pebble",
-	"perspective",
-	"practical",
-	"quiet",
-	"radiant",
-	"resilient",
-	"river",
-	"sanctuary",
-	"serendipity",
-	"sincere",
-	"solitude",
-	"spark",
-	"steady",
-	"tapestry",
-	"thoughtful",
-	"threshold",
-	"tranquil",
-	"twilight",
-	"vibrant",
-	"voyage",
-	"wonder",
-	"zephyr",
-}
+var randomWordURL = "https://www.wordgamedb.com/api/v2/words/random"
 
 func RandomWord(language string) (string, error) {
-	if isEnglishLanguage(language) {
-		return randomEnglishWord()
-	}
-
 	return randomWordFromAPI(language)
 }
 
 func randomWordFromAPI(language string) (string, error) {
-	endpoint, err := url.Parse(randomWordURL)
+	language = strings.TrimSpace(strings.ToLower(language))
+
+	endpoint, err := randomWordEndpoint(language)
 	if err != nil {
 		return "", fmt.Errorf("error parsing random word URL: %w", err)
 	}
-
-	query := endpoint.Query()
-	query.Set("number", "1")
-
-	if language != "" && language != "en" {
-		query.Set("lang", language)
-	}
-
-	endpoint.RawQuery = query.Encode()
 
 	ctx, cancel := context.WithTimeout(context.Background(), randomWordAPITimeout)
 	defer cancel()
@@ -108,6 +37,9 @@ func randomWordFromAPI(language string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error creating random word request: %w", err)
 	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", apiUserAgent)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -120,38 +52,57 @@ func randomWordFromAPI(language string) (string, error) {
 		return "", fmt.Errorf("random word API error: %s", resp.Status)
 	}
 
-	var words []string
-
-	err = json.NewDecoder(resp.Body).Decode(&words)
+	word, err := decodeRandomWord(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error decoding random word response: %w", err)
-	}
-
-	if len(words) == 0 {
-		return "", fmt.Errorf("random word API returned no words")
-	}
-
-	word := strings.TrimSpace(words[0])
-	if word == "" {
-		return "", fmt.Errorf("random word API returned an empty word")
+		return "", err
 	}
 
 	return word, nil
+}
+
+func randomWordEndpoint(language string) (*url.URL, error) {
+	if isEnglishLanguage(language) {
+		return url.Parse(randomWordURL)
+	}
+
+	endpoint, err := url.Parse(legacyRandomWordURL)
+	if err != nil {
+		return nil, err
+	}
+
+	query := endpoint.Query()
+	query.Set("number", "1")
+	query.Set("lang", language)
+	endpoint.RawQuery = query.Encode()
+
+	return endpoint, nil
+}
+
+func decodeRandomWord(reader io.Reader) (string, error) {
+	var payload json.RawMessage
+	if err := json.NewDecoder(reader).Decode(&payload); err != nil {
+		return "", fmt.Errorf("error decoding random word response: %w", err)
+	}
+
+	var object struct {
+		Word string `json:"word"`
+	}
+	if err := json.Unmarshal(payload, &object); err == nil && strings.TrimSpace(object.Word) != "" {
+		return strings.TrimSpace(object.Word), nil
+	}
+
+	var words []string
+	if err := json.Unmarshal(payload, &words); err == nil && len(words) > 0 && strings.TrimSpace(words[0]) != "" {
+		return strings.TrimSpace(words[0]), nil
+	}
+
+	return "", fmt.Errorf("random word API returned no words")
 }
 
 func isEnglishLanguage(language string) bool {
 	language = strings.TrimSpace(strings.ToLower(language))
 
 	return language == "" || language == "en"
-}
-
-func randomEnglishWord() (string, error) {
-	index, err := randomInt(len(englishRandomWords))
-	if err != nil {
-		return "", err
-	}
-
-	return englishRandomWords[index], nil
 }
 
 func RandomDictionarySet(language string) ([]DictionaryEntry, error) {
