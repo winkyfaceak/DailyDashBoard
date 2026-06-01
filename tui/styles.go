@@ -56,6 +56,13 @@ var (
 			MarginTop(1).
 			Width(92)
 
+	musicBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#04B575")).
+			Padding(1, 2).
+			MarginTop(1).
+			Width(84)
+
 	wordStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#FAFAFA")).
@@ -91,6 +98,17 @@ var (
 	newsHeadlineStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color("#FAFAFA"))
+
+	musicHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#FAFAFA")).
+				Background(lipgloss.Color("#7D56F4")).
+				Padding(0, 1).
+				MaxWidth(musicTextWidth)
+
+	musicTrackStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FAFAFA"))
 
 	subtleTextStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#A8A8A8"))

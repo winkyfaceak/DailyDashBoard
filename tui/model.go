@@ -10,17 +10,27 @@ const (
 )
 
 type Model struct {
-	screen           screen
-	menus            map[screen]menu
-	cursor           int
-	message          string
-	dictionaryResult string
-	artworkResult    string
-	pendingArtwork   string
-	artworkImageURL  string
-	newsResult       string
-	newsLinks        []string
-	audioURL         string
+	screen             screen
+	menus              map[screen]menu
+	cursor             int
+	message            string
+	dictionaryResult   string
+	artworkResult      string
+	pendingArtwork     string
+	artworkImageURL    string
+	musicResult        string
+	pendingMusic       string
+	musicImageURL      string
+	musicTrackURL      string
+	newsResult         string
+	newsLinks          []string
+	audioURL           string
+	audioLabel         string
+	audioAllowDownload bool
+	audioPlayer        *audioPlayer
+	audioPaused        bool
+	audioStarting      bool
+	audioRequestID     int
 }
 
 func InitialModel() Model {
@@ -40,6 +50,7 @@ func InitialModel() Model {
 					"random word",
 					"random artwork",
 					"daily news",
+					"random music",
 					"back",
 				},
 			},

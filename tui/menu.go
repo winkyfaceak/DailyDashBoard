@@ -13,12 +13,6 @@ func (m Model) goTo(s screen) Model {
 	m.screen = s
 	m.cursor = 0
 	m.message = ""
-	m.dictionaryResult = ""
-	m.artworkResult = ""
-	m.pendingArtwork = ""
-	m.artworkImageURL = ""
-	m.newsResult = ""
-	m.newsLinks = nil
-	m.audioURL = ""
-	return m
+
+	return m.clearContent()
 }

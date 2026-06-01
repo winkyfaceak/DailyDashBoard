@@ -10,11 +10,31 @@ func (m Model) View() tea.View {
 	helpText := "↑/↓ or j/k to move • enter to select • q to quit"
 
 	if m.audioURL != "" {
-		helpText += " • p to play audio"
+		audioAction := "play"
+		if m.audioStarting {
+			audioAction = "start"
+		}
+
+		if m.audioPlayer != nil {
+			audioAction = "pause"
+			if m.audioPaused {
+				audioAction = "resume"
+			}
+		}
+
+		helpText += " • p to " + audioAction + " " + m.currentAudioLabel()
 	}
 
 	if m.artworkImageURL != "" {
 		helpText += " • o to open image"
+	}
+
+	if m.musicImageURL != "" {
+		helpText += " • o to open album art"
+	}
+
+	if m.musicTrackURL != "" {
+		helpText += " • s to open song"
 	}
 
 	if len(m.newsLinks) > 0 {
@@ -57,6 +77,10 @@ func (m Model) View() tea.View {
 
 	if m.newsResult != "" {
 		contentParts = append(contentParts, newsBoxStyle.Render(m.newsResult))
+	}
+
+	if m.musicResult != "" {
+		contentParts = append(contentParts, musicBoxStyle.Render(m.musicResult))
 	}
 
 	content := lipgloss.JoinVertical(

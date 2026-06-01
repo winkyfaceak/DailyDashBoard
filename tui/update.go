@@ -13,10 +13,6 @@ type dictionaryResultMsg struct {
 	Err     error
 }
 
-type audioPlaybackMsg struct {
-	Err error
-}
-
 type externalOpenMsg struct {
 	Err error
 }
@@ -53,9 +49,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.musicResult = ""
+			m.pendingMusic = ""
+			m.musicImageURL = ""
+			m.musicTrackURL = ""
 			m.newsResult = ""
 			m.newsLinks = nil
 			m.audioURL = ""
+			m.audioLabel = ""
+			m.audioAllowDownload = false
 			return m, nil
 		}
 
@@ -65,19 +67,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.musicResult = ""
+			m.pendingMusic = ""
+			m.musicImageURL = ""
+			m.musicTrackURL = ""
 			m.newsResult = ""
 			m.newsLinks = nil
 			m.audioURL = ""
+			m.audioLabel = ""
+			m.audioAllowDownload = false
 			return m, nil
 		}
 
 		entry := msg.Entries[0]
 		m.message = ""
 		m.audioURL = firstAudio(entry.Phonetics)
+		m.audioLabel = "pronunciation"
+		m.audioAllowDownload = true
 		m.dictionaryResult = formatDictionaryEntry(entry)
 		m.artworkResult = ""
 		m.pendingArtwork = ""
 		m.artworkImageURL = ""
+		m.musicResult = ""
+		m.pendingMusic = ""
+		m.musicImageURL = ""
+		m.musicTrackURL = ""
 		m.newsResult = ""
 		m.newsLinks = nil
 
@@ -85,6 +99,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case artworkResultMsg:
 		m.audioURL = ""
+		m.audioLabel = ""
+		m.audioAllowDownload = false
+		m.musicResult = ""
+		m.pendingMusic = ""
+		m.musicImageURL = ""
+		m.musicTrackURL = ""
 		m.newsResult = ""
 		m.newsLinks = nil
 
@@ -100,6 +120,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dictionaryResult = ""
 		m.pendingArtwork = ""
 		m.artworkImageURL = preferredArtworkImageURL(msg.Artwork)
+		m.musicResult = ""
+		m.pendingMusic = ""
+		m.musicImageURL = ""
+		m.musicTrackURL = ""
 
 		readyResult := formatArtwork(msg.Artwork, msg.Image.Text)
 		if msg.Image.Raw != "" {
@@ -118,10 +142,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case newsResultMsg:
 		m.audioURL = ""
+		m.audioLabel = ""
+		m.audioAllowDownload = false
 		m.dictionaryResult = ""
 		m.artworkResult = ""
 		m.pendingArtwork = ""
 		m.artworkImageURL = ""
+		m.musicResult = ""
+		m.pendingMusic = ""
+		m.musicImageURL = ""
+		m.musicTrackURL = ""
 		m.newsResult = ""
 		m.newsLinks = nil
 
@@ -141,6 +171,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
+	case musicResultMsg:
+		m.audioURL = ""
+		m.audioLabel = ""
+		m.audioAllowDownload = false
+		m.dictionaryResult = ""
+		m.artworkResult = ""
+		m.pendingArtwork = ""
+		m.artworkImageURL = ""
+		m.newsResult = ""
+		m.newsLinks = nil
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Music error: %v", msg.Err)
+			m.musicResult = ""
+			m.pendingMusic = ""
+			m.musicImageURL = ""
+			m.musicTrackURL = ""
+			return m, nil
+		}
+
+		m.message = ""
+		m.musicImageURL = msg.Pick.ArtworkURL
+		m.musicTrackURL = msg.Pick.TrackURL
+		m.audioURL = msg.Pick.PreviewURL
+		m.audioLabel = "preview"
+		m.audioAllowDownload = true
+
+		readyResult := formatMusic(msg.Pick, msg.Image.Text)
+		if msg.Image.Raw != "" {
+			m.musicResult = formatMusic(msg.Pick, subtleTextStyle.Render("Rendering album art..."))
+			m.pendingMusic = readyResult
+
+			return m, tea.Sequence(
+				tea.Raw(msg.Image.Raw),
+				func() tea.Msg { return musicImageReadyMsg{} },
+			)
+		}
+
+		m.musicResult = readyResult
+		m.pendingMusic = ""
+
+		return m, nil
+
 	case artworkImageReadyMsg:
 		if m.pendingArtwork != "" {
 			m.artworkResult = m.pendingArtwork
@@ -149,13 +222,61 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case audioPlaybackMsg:
+	case musicImageReadyMsg:
+		if m.pendingMusic != "" {
+			m.musicResult = m.pendingMusic
+			m.pendingMusic = ""
+		}
+
+		return m, nil
+
+	case audioStartedMsg:
+		if msg.RequestID != m.audioRequestID {
+			if msg.Player != nil {
+				msg.Player.Stop()
+				return m, waitAudioCmd(msg.Player)
+			}
+
+			return m, nil
+		}
+
+		m.audioStarting = false
+
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Audio error: %v", msg.Err)
 			return m, nil
 		}
 
-		m.message = "Played pronunciation."
+		if msg.Player == nil {
+			m.message = "Audio error: no audio player was started"
+			return m, nil
+		}
+
+		if m.audioPlayer != nil {
+			m.audioPlayer.Stop()
+		}
+
+		m.audioPlayer = msg.Player
+		m.audioPaused = false
+		m.message = fmt.Sprintf("Playing %s.", m.currentAudioLabel())
+
+		return m, waitAudioCmd(msg.Player)
+
+	case audioFinishedMsg:
+		if msg.Player != m.audioPlayer {
+			return m, nil
+		}
+
+		m.audioPlayer = nil
+		m.audioPaused = false
+		m.audioStarting = false
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Audio error: %v", msg.Err)
+			return m, nil
+		}
+
+		m.message = fmt.Sprintf("Finished %s.", m.currentAudioLabel())
 
 		return m, nil
 
@@ -182,6 +303,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "ctrl+c", "q":
+			m.stopAudio()
 			return m, tea.Quit
 
 		case "up", "k":
@@ -198,14 +320,56 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "p":
 			if m.audioURL != "" {
-				m.message = "Playing pronunciation..."
-				return m, playAudioCmd(m.audioURL)
+				audioLabel := m.currentAudioLabel()
+
+				if m.audioPlayer != nil {
+					if m.audioPaused {
+						if err := m.audioPlayer.Resume(); err != nil {
+							m.message = fmt.Sprintf("Audio error: %v", err)
+							return m, nil
+						}
+
+						m.audioPaused = false
+						m.message = "Resumed " + audioLabel + "."
+						return m, nil
+					}
+
+					if err := m.audioPlayer.Pause(); err != nil {
+						m.message = fmt.Sprintf("Audio error: %v", err)
+						return m, nil
+					}
+
+					m.audioPaused = true
+					m.message = "Paused " + audioLabel + "."
+					return m, nil
+				}
+
+				if m.audioStarting {
+					m.message = "Starting " + audioLabel + "..."
+					return m, nil
+				}
+
+				m.message = "Playing " + audioLabel + "..."
+				m.audioStarting = true
+				m.audioRequestID++
+				return m, startAudioCmd(m.audioURL, m.audioAllowDownload, m.audioRequestID)
 			}
 
 		case "o":
 			if m.artworkImageURL != "" {
 				m.message = "Opening full artwork image..."
 				return m, openExternalURLCmd(m.artworkImageURL)
+			}
+
+			if m.musicImageURL != "" {
+				m.message = "Opening album art..."
+				return m, openExternalURLCmd(m.musicImageURL)
+			}
+
+		case "s":
+			if m.musicTrackURL != "" {
+				m.message = "Opening song..."
+				return m, openExternalURLCmd(m.musicTrackURL)
 			}
 
 		case "enter":
@@ -233,54 +397,74 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 	case testMenu:
 		switch selected {
 		case "random word":
+			m = m.clearContent()
 			m.message = "Searching for a random word..."
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
 			return m, fetchRandomDictionaryCmd("en")
 
 		case "random artwork":
+			m = m.clearContent()
 			m.message = "Fetching artwork..."
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
 			return m, fetchArtworkCmd()
 
 		case "daily news":
+			m = m.clearContent()
 			m.message = "Fetching daily news..."
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
 			return m, fetchNewsCmd()
+
+		case "random music":
+			m = m.clearContent()
+			m.message = "Finding a genre and song..."
+			return m, fetchMusicCmd()
 
 		case "back":
 			m = m.goTo(mainMenu)
 
 		default:
+			m = m.clearContent()
 			m.message = fmt.Sprintf("You selected from test menu: %s", selected)
-			m.dictionaryResult = ""
-			m.artworkResult = ""
-			m.pendingArtwork = ""
-			m.artworkImageURL = ""
-			m.newsResult = ""
-			m.newsLinks = nil
-			m.audioURL = ""
 		}
 	}
 
 	return m, nil
+}
+
+func (m Model) clearContent() Model {
+	m.stopAudio()
+	m.audioRequestID++
+	m.dictionaryResult = ""
+	m.artworkResult = ""
+	m.pendingArtwork = ""
+	m.artworkImageURL = ""
+	m.musicResult = ""
+	m.pendingMusic = ""
+	m.musicImageURL = ""
+	m.musicTrackURL = ""
+	m.newsResult = ""
+	m.newsLinks = nil
+	m.audioURL = ""
+	m.audioLabel = ""
+	m.audioAllowDownload = false
+	m.audioStarting = false
+
+	return m
+}
+
+func (m *Model) stopAudio() {
+	if m.audioPlayer != nil {
+		m.audioPlayer.Stop()
+		m.audioPlayer = nil
+	}
+
+	m.audioPaused = false
+	m.audioStarting = false
+}
+
+func (m Model) currentAudioLabel() string {
+	if m.audioLabel != "" {
+		return m.audioLabel
+	}
+
+	return "audio"
 }
 
 func formatDictionaryEntry(entry api.DictionaryEntry) string {
