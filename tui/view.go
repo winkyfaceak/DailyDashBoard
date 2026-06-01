@@ -67,6 +67,10 @@ func (m Model) View() tea.View {
 		contentParts = append(contentParts, messageStyle.Render(m.message))
 	}
 
+	if m.factResult != "" {
+		contentParts = append(contentParts, factBoxStyle.Render(m.factResult))
+	}
+
 	if m.dictionaryResult != "" {
 		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.dictionaryResult))
 	}

@@ -43,6 +43,7 @@ var (
 			Foreground(successColor).
 			MarginTop(1)
 
+	factBoxStyle       = contentBoxStyle(84)
 	dictionaryBoxStyle = contentBoxStyle(70)
 	artworkBoxStyle    = contentBoxStyle(84)
 	newsBoxStyle       = contentBoxStyle(92)
@@ -61,6 +62,13 @@ var (
 	partOfSpeechStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(successColor)
+
+	factHeaderStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(textColor).
+			Background(primaryColor).
+			Padding(0, 1).
+			MaxWidth(factTextWidth)
 
 	exampleStyle = lipgloss.NewStyle().
 			Italic(true).

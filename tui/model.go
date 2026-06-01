@@ -14,6 +14,7 @@ type Model struct {
 	menus              map[screen]menu
 	cursor             int
 	message            string
+	factResult         string
 	dictionaryResult   string
 	artworkResult      string
 	pendingArtwork     string
@@ -48,6 +49,7 @@ func InitialModel() Model {
 				title: "Test Menu",
 				items: []string{
 					"random word",
+					"random fact",
 					"random artwork",
 					"daily news",
 					"random music",

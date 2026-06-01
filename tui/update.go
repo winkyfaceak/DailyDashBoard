@@ -31,6 +31,19 @@ func fetchRandomDictionaryCmd(language string) tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	case factResultMsg:
+		m = m.clearResultContent()
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Fact error: %v", msg.Err)
+			return m, nil
+		}
+
+		m.message = ""
+		m.factResult = formatFact(msg.Fact)
+
+		return m, nil
+
 	case dictionaryResultMsg:
 		m = m.clearResultContent()
 
@@ -316,6 +329,11 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 			m.message = "Searching for a random word..."
 			return m, fetchRandomDictionaryCmd("en")
 
+		case "random fact":
+			m = m.clearContent()
+			m.message = "Fetching a random fact..."
+			return m, fetchFactCmd()
+
 		case "random artwork":
 			m = m.clearContent()
 			m.message = "Fetching artwork..."
@@ -354,6 +372,7 @@ func (m Model) clearContent() Model {
 }
 
 func (m Model) clearResultContent() Model {
+	m.factResult = ""
 	m.dictionaryResult = ""
 	m.artworkResult = ""
 	m.pendingArtwork = ""
