@@ -18,6 +18,8 @@ type Model struct {
 	artworkResult    string
 	pendingArtwork   string
 	artworkImageURL  string
+	newsResult       string
+	newsLinks        []string
 	audioURL         string
 }
 
@@ -37,6 +39,7 @@ func InitialModel() Model {
 				items: []string{
 					"random word",
 					"random artwork",
+					"daily news",
 					"back",
 				},
 			},

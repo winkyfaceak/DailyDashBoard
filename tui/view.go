@@ -17,6 +17,10 @@ func (m Model) View() tea.View {
 		helpText += " • o to open image"
 	}
 
+	if len(m.newsLinks) > 0 {
+		helpText += " • 1-9 to open story"
+	}
+
 	var menuItems []string
 
 	for i, choice := range currentMenu.items {
@@ -49,6 +53,10 @@ func (m Model) View() tea.View {
 
 	if m.artworkResult != "" {
 		contentParts = append(contentParts, artworkBoxStyle.Render(m.artworkResult))
+	}
+
+	if m.newsResult != "" {
+		contentParts = append(contentParts, newsBoxStyle.Render(m.newsResult))
 	}
 
 	content := lipgloss.JoinVertical(

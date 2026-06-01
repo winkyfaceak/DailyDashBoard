@@ -49,6 +49,13 @@ var (
 			MarginTop(1).
 			Width(84)
 
+	newsBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#04B575")).
+			Padding(1, 2).
+			MarginTop(1).
+			Width(92)
+
 	wordStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#FAFAFA")).
@@ -73,6 +80,17 @@ var (
 				Background(lipgloss.Color("#7D56F4")).
 				Padding(0, 1).
 				MaxWidth(artworkTextWidth)
+
+	newsHeaderStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")).
+			Padding(0, 1).
+			MaxWidth(newsTextWidth)
+
+	newsHeadlineStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#FAFAFA"))
 
 	subtleTextStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#A8A8A8"))

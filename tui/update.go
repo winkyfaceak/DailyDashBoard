@@ -53,6 +53,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
 			m.audioURL = ""
 			return m, nil
 		}
@@ -63,6 +65,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
 			m.audioURL = ""
 			return m, nil
 		}
@@ -74,11 +78,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.artworkResult = ""
 		m.pendingArtwork = ""
 		m.artworkImageURL = ""
+		m.newsResult = ""
+		m.newsLinks = nil
 
 		return m, nil
 
 	case artworkResultMsg:
 		m.audioURL = ""
+		m.newsResult = ""
+		m.newsLinks = nil
 
 		if msg.Err != nil {
 			m.message = fmt.Sprintf("Artwork error: %v", msg.Err)
@@ -108,6 +116,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
+	case newsResultMsg:
+		m.audioURL = ""
+		m.dictionaryResult = ""
+		m.artworkResult = ""
+		m.pendingArtwork = ""
+		m.artworkImageURL = ""
+		m.newsResult = ""
+		m.newsLinks = nil
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("News error: %v", msg.Err)
+			return m, nil
+		}
+
+		if len(msg.Items) == 0 {
+			m.message = "No news stories found."
+			return m, nil
+		}
+
+		m.message = ""
+		m.newsResult = formatNewsItems(msg.Items)
+		m.newsLinks = newsLinks(msg.Items)
+
+		return m, nil
+
 	case artworkImageReadyMsg:
 		if m.pendingArtwork != "" {
 			m.artworkResult = m.pendingArtwork
@@ -128,15 +161,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case externalOpenMsg:
 		if msg.Err != nil {
-			m.message = fmt.Sprintf("Open image error: %v", msg.Err)
+			m.message = fmt.Sprintf("Open link error: %v", msg.Err)
 			return m, nil
 		}
 
-		m.message = "Opened full artwork image."
+		m.message = "Opened link."
 
 		return m, nil
 
 	case tea.KeyPressMsg:
+		if index, ok := newsLinkIndex(msg.String()); ok && len(m.newsLinks) > 0 {
+			if index >= len(m.newsLinks) || m.newsLinks[index] == "" {
+				m.message = fmt.Sprintf("Story %d does not include a link.", index+1)
+				return m, nil
+			}
+
+			m.message = fmt.Sprintf("Opening story %d...", index+1)
+			return m, openExternalURLCmd(m.newsLinks[index])
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -195,6 +238,8 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
 			m.audioURL = ""
 			return m, fetchRandomDictionaryCmd("en")
 
@@ -204,8 +249,21 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
 			m.audioURL = ""
 			return m, fetchArtworkCmd()
+
+		case "daily news":
+			m.message = "Fetching daily news..."
+			m.dictionaryResult = ""
+			m.artworkResult = ""
+			m.pendingArtwork = ""
+			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
+			m.audioURL = ""
+			return m, fetchNewsCmd()
 
 		case "back":
 			m = m.goTo(mainMenu)
@@ -216,6 +274,8 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 			m.artworkResult = ""
 			m.pendingArtwork = ""
 			m.artworkImageURL = ""
+			m.newsResult = ""
+			m.newsLinks = nil
 			m.audioURL = ""
 		}
 	}

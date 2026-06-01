@@ -17,6 +17,8 @@ func (m Model) goTo(s screen) Model {
 	m.artworkResult = ""
 	m.pendingArtwork = ""
 	m.artworkImageURL = ""
+	m.newsResult = ""
+	m.newsLinks = nil
 	m.audioURL = ""
 	return m
 }
