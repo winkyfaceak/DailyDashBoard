@@ -12,18 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Go test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    defaults:
-      run:
-        shell: bash
+  quality:
+    name: Code quality
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
@@ -50,6 +41,28 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+  test:
+    name: Go test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2022]
+
+    env:
+      CGO_ENABLED: 0
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - name: Test
         run: go test ./...
