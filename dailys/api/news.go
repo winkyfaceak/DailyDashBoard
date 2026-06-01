@@ -33,7 +33,6 @@ type NewsItem struct {
 func DefaultNewsFeeds() []NewsFeed {
 	return []NewsFeed{
 		{Name: "BBC News", URL: "https://feeds.bbci.co.uk/news/rss.xml"},
-		{Name: "The Guardian", URL: "https://www.theguardian.com/world/rss"},
 		{Name: "NPR News", URL: "https://feeds.npr.org/1001/rss.xml"},
 		{Name: "New York Times", URL: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"},
 	}
