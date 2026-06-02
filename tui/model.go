@@ -25,6 +25,11 @@ type Model struct {
 	musicTrackURL      string
 	newsResult         string
 	newsLinks          []string
+	recipeResult       string
+	pendingRecipe      string
+	recipeImageURL     string
+	recipeSourceURL    string
+	recipeVideoURL     string
 	audioURL           string
 	audioLabel         string
 	audioAllowDownload bool
@@ -53,6 +58,7 @@ func InitialModel() Model {
 					"random artwork",
 					"daily news",
 					"random music",
+					"random recipe",
 					"back",
 				},
 			},

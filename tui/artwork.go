@@ -69,7 +69,7 @@ func renderArtworkImage(artwork api.Artwork) terminalImage {
 			continue
 		}
 
-		renderedImage, err := renderTerminalImageFromURL(imageURL, artworkImageCols, artworkImageRows)
+		renderedImage, err := renderTerminalImageFromURLWithReferer(imageURL, artworkImageCols, artworkImageRows, "https://www.artic.edu/")
 		if err == nil {
 			return renderedImage
 		}
@@ -124,13 +124,19 @@ func formatArtwork(artwork api.Artwork, renderedImage string) string {
 }
 
 func renderTerminalImageFromURL(imageURL string, maxCols int, maxRows int) (terminalImage, error) {
+	return renderTerminalImageFromURLWithReferer(imageURL, maxCols, maxRows, "")
+}
+
+func renderTerminalImageFromURLWithReferer(imageURL string, maxCols int, maxRows int, referer string) (terminalImage, error) {
 	req, err := http.NewRequest(http.MethodGet, imageURL, nil)
 	if err != nil {
 		return terminalImage{}, fmt.Errorf("error creating image request: %w", err)
 	}
 
 	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
-	req.Header.Set("Referer", "https://www.artic.edu/")
+	if referer != "" {
+		req.Header.Set("Referer", referer)
+	}
 	req.Header.Set("User-Agent", "DailyDashBoard/1.0")
 
 	client := &http.Client{

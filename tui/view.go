@@ -37,6 +37,18 @@ func (m Model) View() tea.View {
 		helpText += " • s to open song"
 	}
 
+	if m.recipeImageURL != "" {
+		helpText += " • o to open food image"
+	}
+
+	if m.recipeSourceURL != "" {
+		helpText += " • r to open recipe"
+	}
+
+	if m.recipeVideoURL != "" {
+		helpText += " • v to open video"
+	}
+
 	if len(m.newsLinks) > 0 {
 		helpText += " • 1-9 to open story"
 	}
@@ -85,6 +97,10 @@ func (m Model) View() tea.View {
 
 	if m.musicResult != "" {
 		contentParts = append(contentParts, musicBoxStyle.Render(m.musicResult))
+	}
+
+	if m.recipeResult != "" {
+		contentParts = append(contentParts, recipeBoxStyle.Render(m.recipeResult))
 	}
 
 	content := lipgloss.JoinVertical(

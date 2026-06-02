@@ -48,6 +48,7 @@ var (
 	artworkBoxStyle    = contentBoxStyle(84)
 	newsBoxStyle       = contentBoxStyle(92)
 	musicBoxStyle      = contentBoxStyle(84)
+	recipeBoxStyle     = contentBoxStyle(84)
 
 	wordStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -100,6 +101,17 @@ var (
 				MaxWidth(musicTextWidth)
 
 	musicTrackStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(textColor)
+
+	recipeHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(textColor).
+				Background(primaryColor).
+				Padding(0, 1).
+				MaxWidth(recipeTextWidth)
+
+	recipeNameStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(textColor)
 

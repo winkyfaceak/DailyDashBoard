@@ -142,6 +142,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
+	case recipeResultMsg:
+		m = m.clearResultContent()
+
+		if msg.Err != nil {
+			m.message = fmt.Sprintf("Recipe error: %v", msg.Err)
+			return m, nil
+		}
+
+		m.message = ""
+		m.recipeImageURL = msg.Recipe.ImageURL
+		m.recipeSourceURL = msg.Recipe.SourceURL
+		m.recipeVideoURL = msg.Recipe.YouTubeURL
+
+		readyResult := formatRecipe(msg.Recipe, msg.Image.Text)
+		if msg.Image.Raw != "" {
+			m.recipeResult = formatRecipe(msg.Recipe, subtleTextStyle.Render("Rendering food image..."))
+			m.pendingRecipe = readyResult
+
+			return m, tea.Sequence(
+				tea.Raw(msg.Image.Raw),
+				func() tea.Msg { return recipeImageReadyMsg{} },
+			)
+		}
+
+		m.recipeResult = readyResult
+		m.pendingRecipe = ""
+
+		return m, nil
+
 	case artworkImageReadyMsg:
 		if m.pendingArtwork != "" {
 			m.artworkResult = m.pendingArtwork
@@ -154,6 +183,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.pendingMusic != "" {
 			m.musicResult = m.pendingMusic
 			m.pendingMusic = ""
+		}
+
+		return m, nil
+
+	case recipeImageReadyMsg:
+		if m.pendingRecipe != "" {
+			m.recipeResult = m.pendingRecipe
+			m.pendingRecipe = ""
 		}
 
 		return m, nil
@@ -294,6 +331,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, openExternalURLCmd(m.musicImageURL)
 			}
 
+			if m.recipeImageURL != "" {
+				m.message = "Opening food image..."
+				return m, openExternalURLCmd(m.recipeImageURL)
+			}
+
+		case "r":
+			if m.recipeSourceURL != "" {
+				m.message = "Opening recipe source..."
+				return m, openExternalURLCmd(m.recipeSourceURL)
+			}
+
+		case "v":
+			if m.recipeVideoURL != "" {
+				m.message = "Opening cooking video..."
+				return m, openExternalURLCmd(m.recipeVideoURL)
+			}
+
 		case "s":
 			if m.musicTrackURL != "" {
 				m.message = "Opening song..."
@@ -349,6 +403,11 @@ func (m Model) handleSelection(selected string) (tea.Model, tea.Cmd) {
 			m.message = "Finding a genre and song..."
 			return m, fetchMusicCmd()
 
+		case "random recipe":
+			m = m.clearContent()
+			m.message = "Finding a random recipe..."
+			return m, fetchRecipeCmd()
+
 		case "back":
 			m = m.goTo(mainMenu)
 
@@ -383,6 +442,11 @@ func (m Model) clearResultContent() Model {
 	m.musicTrackURL = ""
 	m.newsResult = ""
 	m.newsLinks = nil
+	m.recipeResult = ""
+	m.pendingRecipe = ""
+	m.recipeImageURL = ""
+	m.recipeSourceURL = ""
+	m.recipeVideoURL = ""
 	m.audioURL = ""
 	m.audioLabel = ""
 	m.audioAllowDownload = false
