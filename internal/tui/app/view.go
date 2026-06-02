@@ -87,6 +87,10 @@ func (m Model) View() tea.View {
 		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.content.Dictionary))
 	}
 
+	if m.content.Tarot != "" {
+		contentParts = append(contentParts, tarotBoxStyle.Render(m.content.Tarot))
+	}
+
 	if m.content.Artwork.Text != "" {
 		contentParts = append(contentParts, artworkBoxStyle.Render(m.content.Artwork.Text))
 	}

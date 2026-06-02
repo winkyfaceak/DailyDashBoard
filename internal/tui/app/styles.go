@@ -45,6 +45,7 @@ var (
 
 	factBoxStyle       = contentBoxStyle(84)
 	dictionaryBoxStyle = contentBoxStyle(70)
+	tarotBoxStyle      = contentBoxStyle(84)
 	artworkBoxStyle    = contentBoxStyle(84)
 	newsBoxStyle       = contentBoxStyle(92)
 	musicBoxStyle      = contentBoxStyle(84)

@@ -18,6 +18,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFactResult(msg)
 	case features.DictionaryResultMsg:
 		return m.handleDictionaryResult(msg)
+	case features.TarotResultMsg:
+		return m.handleTarotResult(msg)
 	case features.ArtworkResultMsg:
 		return m.handleArtworkResult(msg)
 	case features.NewsResultMsg:
@@ -78,6 +80,20 @@ func (m Model) handleDictionaryResult(msg features.DictionaryResultMsg) (tea.Mod
 	m.audio.Label = "pronunciation"
 	m.audio.AllowDownload = true
 	m.content.Dictionary = features.FormatDictionaryEntry(entry)
+
+	return m, nil
+}
+
+func (m Model) handleTarotResult(msg features.TarotResultMsg) (tea.Model, tea.Cmd) {
+	m = m.clearResultContent()
+
+	if msg.Err != nil {
+		m.message = fmt.Sprintf("Tarot error: %v", msg.Err)
+		return m, nil
+	}
+
+	m.message = ""
+	m.content.Tarot = features.FormatTarotReading(msg.Reading)
 
 	return m, nil
 }

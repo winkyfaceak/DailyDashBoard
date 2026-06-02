@@ -1,8 +1,8 @@
 # Daily Dashboard
 
 Daily Dashboard is a small terminal app that serves up quick daily bits: a word,
-a fact, artwork, news, music, and a recipe. It is built with Bubble Tea and kept
-as a terminal-first project.
+a fact, tarot card, artwork, news, music, and a recipe. It is built with Bubble
+Tea and kept as a terminal-first project.
 
 The code is arranged so each part of the app has a clear home. If you want to add
 another daily feature, you should not need to thread your way through one giant

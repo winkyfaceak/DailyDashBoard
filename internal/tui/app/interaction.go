@@ -179,6 +179,8 @@ func (m Model) handleSelection(selected menuItem) (tea.Model, tea.Cmd) {
 		return m.startFeature("Searching for a random word...", features.FetchRandomDictionaryCmd("en"))
 	case actionRandomFact:
 		return m.startFeature("Fetching a random fact...", features.FetchFactCmd())
+	case actionDailyTarot:
+		return m.startFeature("Drawing a tarot card...", features.FetchTarotCmd())
 	case actionRandomArtwork:
 		return m.startFeature("Fetching artwork...", features.FetchArtworkCmd())
 	case actionDailyNews:

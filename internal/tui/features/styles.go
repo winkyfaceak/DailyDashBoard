@@ -35,6 +35,17 @@ var (
 			Italic(true).
 			Foreground(mutedColor)
 
+	tarotHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(textColor).
+				Background(primaryColor).
+				Padding(0, 1).
+				MaxWidth(tarotTextWidth)
+
+	tarotCardStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(textColor)
+
 	artworkHeaderStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(textColor).

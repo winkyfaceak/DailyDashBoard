@@ -20,6 +20,7 @@ const (
 	actionQuit
 	actionRandomWord
 	actionRandomFact
+	actionDailyTarot
 	actionRandomArtwork
 	actionDailyNews
 	actionRandomMusic
@@ -40,6 +41,7 @@ type Model struct {
 type contentState struct {
 	Fact       string
 	Dictionary string
+	Tarot      string
 	Artwork    asyncContent
 	News       string
 	Music      asyncContent
@@ -87,6 +89,7 @@ func InitialModel() Model {
 				items: []menuItem{
 					{label: "random word", action: actionRandomWord},
 					{label: "random fact", action: actionRandomFact},
+					{label: "daily tarot", action: actionDailyTarot},
 					{label: "random artwork", action: actionRandomArtwork},
 					{label: "daily news", action: actionDailyNews},
 					{label: "random music", action: actionRandomMusic},
