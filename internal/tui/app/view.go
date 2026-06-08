@@ -57,6 +57,18 @@ func (m Model) View() tea.View {
 		helpText += " • 1-9 to open story"
 	}
 
+	if m.math.Active {
+		helpText = "type answer • enter to check • backspace to edit • esc to clear • ctrl+c to quit"
+	}
+
+	if m.trivia.Active {
+		helpText = "press 1-4 to answer • esc to clear • ctrl+c to quit"
+	}
+
+	if m.musicTrivia.Active {
+		helpText = "type guess • enter to submit • ctrl+p to play preview • ? for hint • backspace to edit • esc to clear • ctrl+c to quit"
+	}
+
 	var menuItems []string
 
 	for i, choice := range currentMenu.items {
@@ -87,6 +99,14 @@ func (m Model) View() tea.View {
 		contentParts = append(contentParts, factBoxStyle.Render(m.content.Fact))
 	}
 
+	if m.content.Math != "" {
+		contentParts = append(contentParts, mathBoxStyle.Render(m.content.Math))
+	}
+
+	if m.content.Trivia != "" {
+		contentParts = append(contentParts, triviaBoxStyle.Render(m.content.Trivia))
+	}
+
 	if m.content.Dictionary != "" {
 		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.content.Dictionary))
 	}
@@ -105,6 +125,10 @@ func (m Model) View() tea.View {
 
 	if m.content.Music.Text != "" {
 		contentParts = append(contentParts, musicBoxStyle.Render(m.content.Music.Text))
+	}
+
+	if m.content.MusicTrivia != "" {
+		contentParts = append(contentParts, musicTriviaBoxStyle.Render(m.content.MusicTrivia))
 	}
 
 	if m.content.Recipe.Text != "" {

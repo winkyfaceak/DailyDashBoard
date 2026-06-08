@@ -31,6 +31,24 @@ var (
 			Padding(0, 1).
 			MaxWidth(factTextWidth)
 
+	mathHeaderStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(textColor).
+			Background(primaryColor).
+			Padding(0, 1).
+			MaxWidth(mathTextWidth)
+
+	mathQuestionStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(textColor)
+
+	triviaHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(textColor).
+				Background(primaryColor).
+				Padding(0, 1).
+				MaxWidth(triviaTextWidth)
+
 	exampleStyle = lipgloss.NewStyle().
 			Italic(true).
 			Foreground(mutedColor)
@@ -75,6 +93,13 @@ var (
 			Bold(true).
 			Foreground(textColor)
 
+	musicTriviaHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(textColor).
+				Background(primaryColor).
+				Padding(0, 1).
+				MaxWidth(musicTriviaTextWidth)
+
 	recipeHeaderStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(textColor).
@@ -88,6 +113,9 @@ var (
 
 	subtleTextStyle = lipgloss.NewStyle().
 			Foreground(mutedColor)
+
+	successTextStyle = lipgloss.NewStyle().
+				Foreground(successColor)
 )
 
 func SubtleText(value string) string {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/audio"
 
 	tea "charm.land/bubbletea/v2"
@@ -20,32 +21,41 @@ const (
 	actionQuit
 	actionRandomWord
 	actionRandomFact
+	actionRandomMath
+	actionRandomTrivia
 	actionDailyTarot
 	actionRandomArtwork
 	actionDailyNews
 	actionRandomMusic
+	actionMusicTrivia
 	actionRandomRecipe
 	actionBack
 )
 
 type Model struct {
-	screen  screen
-	menus   map[screen]menu
-	cursor  int
-	message string
-	content contentState
-	links   linkState
-	audio   audioState
+	screen      screen
+	menus       map[screen]menu
+	cursor      int
+	message     string
+	content     contentState
+	links       linkState
+	audio       audioState
+	math        mathState
+	trivia      triviaState
+	musicTrivia musicTriviaState
 }
 
 type contentState struct {
-	Fact       string
-	Dictionary string
-	Tarot      asyncContent
-	Artwork    asyncContent
-	News       string
-	Music      asyncContent
-	Recipe     asyncContent
+	Fact        string
+	Math        string
+	Trivia      string
+	Dictionary  string
+	Tarot       asyncContent
+	Artwork     asyncContent
+	News        string
+	Music       asyncContent
+	MusicTrivia string
+	Recipe      asyncContent
 }
 
 type asyncContent struct {
@@ -74,6 +84,30 @@ type audioState struct {
 	RequestID     int
 }
 
+type mathState struct {
+	Active      bool
+	Question    daily.MathQuestion
+	AnswerInput string
+	Submitted   bool
+	Correct     bool
+}
+
+type triviaState struct {
+	Active         bool
+	Question       daily.TriviaQuestion
+	Submitted      bool
+	SelectedChoice int
+}
+
+type musicTriviaState struct {
+	Active     bool
+	Question   daily.MusicTriviaQuestion
+	GuessInput string
+	GuessCount int
+	HintCount  int
+	Solved     bool
+}
+
 func InitialModel() Model {
 	return Model{
 		screen: mainMenu,
@@ -90,10 +124,13 @@ func InitialModel() Model {
 				items: []menuItem{
 					{label: "random word", action: actionRandomWord},
 					{label: "random fact", action: actionRandomFact},
+					{label: "random math question", action: actionRandomMath},
+					{label: "random trivia", action: actionRandomTrivia},
 					{label: "daily tarot", action: actionDailyTarot},
 					{label: "random artwork", action: actionRandomArtwork},
 					{label: "daily news", action: actionDailyNews},
 					{label: "random music", action: actionRandomMusic},
+					{label: "music trivia", action: actionMusicTrivia},
 					{label: "random recipe", action: actionRandomRecipe},
 					{label: "back", action: actionBack},
 				},

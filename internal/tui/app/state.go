@@ -13,6 +13,9 @@ func (m Model) clearContent() Model {
 func (m Model) clearResultContent() Model {
 	m.content = contentState{}
 	m.links = linkState{}
+	m.math = mathState{}
+	m.trivia = triviaState{}
+	m.musicTrivia = musicTriviaState{}
 	m.audio.URL = ""
 	m.audio.Label = ""
 	m.audio.AllowDownload = false

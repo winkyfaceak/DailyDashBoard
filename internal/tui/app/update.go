@@ -17,6 +17,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case features.FactResultMsg:
 		return m.handleFactResult(msg)
+	case features.MathResultMsg:
+		return m.handleMathResult(msg)
+	case features.TriviaResultMsg:
+		return m.handleTriviaResult(msg)
 	case features.DictionaryResultMsg:
 		return m.handleDictionaryResult(msg)
 	case features.TarotResultMsg:
@@ -27,6 +31,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleNewsResult(msg)
 	case features.MusicResultMsg:
 		return m.handleMusicResult(msg)
+	case features.MusicTriviaResultMsg:
+		return m.handleMusicTriviaResult(msg)
 	case features.RecipeResultMsg:
 		return m.handleRecipeResult(msg)
 	case artworkImageReadyMsg:
@@ -60,6 +66,43 @@ func (m Model) handleFactResult(msg features.FactResultMsg) (tea.Model, tea.Cmd)
 
 	m.message = ""
 	m.content.Fact = features.FormatFact(msg.Fact)
+
+	return m, nil
+}
+
+func (m Model) handleMathResult(msg features.MathResultMsg) (tea.Model, tea.Cmd) {
+	m = m.clearResultContent()
+
+	if msg.Err != nil {
+		m.message = fmt.Sprintf("Math error: %v", msg.Err)
+		return m, nil
+	}
+
+	m.message = ""
+	m.math = mathState{
+		Active:   true,
+		Question: msg.Question,
+	}
+	m.content.Math = m.formatMathContent()
+
+	return m, nil
+}
+
+func (m Model) handleTriviaResult(msg features.TriviaResultMsg) (tea.Model, tea.Cmd) {
+	m = m.clearResultContent()
+
+	if msg.Err != nil {
+		m.message = fmt.Sprintf("Trivia error: %v", msg.Err)
+		return m, nil
+	}
+
+	m.message = ""
+	m.trivia = triviaState{
+		Active:         true,
+		Question:       msg.Question,
+		SelectedChoice: -1,
+	}
+	m.content.Trivia = m.formatTriviaContent()
 
 	return m, nil
 }
@@ -188,6 +231,27 @@ func (m Model) handleMusicResult(msg features.MusicResultMsg) (tea.Model, tea.Cm
 	}
 
 	m.content.Music.Text = readyResult
+
+	return m, nil
+}
+
+func (m Model) handleMusicTriviaResult(msg features.MusicTriviaResultMsg) (tea.Model, tea.Cmd) {
+	m = m.clearResultContent()
+
+	if msg.Err != nil {
+		m.message = fmt.Sprintf("Music trivia error: %v", msg.Err)
+		return m, nil
+	}
+
+	m.message = ""
+	m.musicTrivia = musicTriviaState{
+		Active:   true,
+		Question: msg.Question,
+	}
+	m.audio.URL = msg.Question.Pick.PreviewURL
+	m.audio.Label = "mystery preview"
+	m.audio.AllowDownload = true
+	m.content.MusicTrivia = m.formatMusicTriviaContent()
 
 	return m, nil
 }

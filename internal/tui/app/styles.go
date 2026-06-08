@@ -43,13 +43,16 @@ var (
 			Foreground(successColor).
 			MarginTop(1)
 
-	factBoxStyle       = contentBoxStyle(84)
-	dictionaryBoxStyle = contentBoxStyle(70)
-	tarotBoxStyle      = contentBoxStyle(84)
-	artworkBoxStyle    = contentBoxStyle(84)
-	newsBoxStyle       = contentBoxStyle(92)
-	musicBoxStyle      = contentBoxStyle(84)
-	recipeBoxStyle     = contentBoxStyle(84)
+	factBoxStyle        = contentBoxStyle(84)
+	mathBoxStyle        = contentBoxStyle(78)
+	triviaBoxStyle      = contentBoxStyle(84)
+	dictionaryBoxStyle  = contentBoxStyle(70)
+	tarotBoxStyle       = contentBoxStyle(84)
+	artworkBoxStyle     = contentBoxStyle(84)
+	newsBoxStyle        = contentBoxStyle(92)
+	musicBoxStyle       = contentBoxStyle(84)
+	musicTriviaBoxStyle = contentBoxStyle(84)
+	recipeBoxStyle      = contentBoxStyle(84)
 )
 
 func contentBoxStyle(width int) lipgloss.Style {
