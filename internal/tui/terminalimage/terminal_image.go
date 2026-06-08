@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"math"
@@ -23,6 +25,8 @@ const (
 	kittyTerminalImageID     = 42
 	kittyImagePlacementID    = 1
 	terminalImageMaxByteSize = 10 << 20
+	compositeImageHeight     = 600
+	compositeImageGap        = 24
 )
 
 type Image struct {
@@ -30,14 +34,71 @@ type Image struct {
 	Raw  string
 }
 
+type URLImage struct {
+	URL        string
+	Referer    string
+	UpsideDown bool
+}
+
 func RenderFromURL(imageURL string, maxCols int, maxRows int) (Image, error) {
 	return RenderFromURLWithReferer(imageURL, maxCols, maxRows, "")
 }
 
 func RenderFromURLWithReferer(imageURL string, maxCols int, maxRows int, referer string) (Image, error) {
+	imageBytes, img, err := downloadImageFromURL(imageURL, referer)
+	if err != nil {
+		return Image{}, err
+	}
+
+	if inlineImage := renderInlineTerminalImage(imageBytes, img, maxCols, maxRows); inlineImage.Text != "" || inlineImage.Raw != "" {
+		return inlineImage, nil
+	}
+
+	return Image{Text: renderTerminalImage(img, maxCols, maxRows)}, nil
+}
+
+func RenderGridFromURLs(images []URLImage, maxCols int, maxRows int) (Image, error) {
+	if len(images) == 0 {
+		return Image{}, fmt.Errorf("no image URLs were provided")
+	}
+
+	decodedImages := make([]image.Image, 0, len(images))
+	for index, item := range images {
+		if item.URL == "" {
+			return Image{}, fmt.Errorf("image %d did not include a URL", index+1)
+		}
+
+		_, img, err := downloadImageFromURL(item.URL, item.Referer)
+		if err != nil {
+			return Image{}, fmt.Errorf("image %d unavailable: %w", index+1, err)
+		}
+
+		resizedImage := resizeImageToHeight(img, compositeImageHeight)
+		if item.UpsideDown {
+			resizedImage = rotateImageHalfTurn(resizedImage)
+		}
+
+		decodedImages = append(decodedImages, resizedImage)
+	}
+
+	composite := composeHorizontalImages(decodedImages, compositeImageGap)
+
+	var imageBytes bytes.Buffer
+	if err := jpeg.Encode(&imageBytes, composite, &jpeg.Options{Quality: 90}); err != nil {
+		return Image{}, fmt.Errorf("error encoding image: %w", err)
+	}
+
+	if inlineImage := renderInlineTerminalImage(imageBytes.Bytes(), composite, maxCols, maxRows); inlineImage.Text != "" || inlineImage.Raw != "" {
+		return inlineImage, nil
+	}
+
+	return Image{Text: renderTerminalImage(composite, maxCols, maxRows)}, nil
+}
+
+func downloadImageFromURL(imageURL string, referer string) ([]byte, image.Image, error) {
 	req, err := http.NewRequest(http.MethodGet, imageURL, nil)
 	if err != nil {
-		return Image{}, fmt.Errorf("error creating image request: %w", err)
+		return nil, nil, fmt.Errorf("error creating image request: %w", err)
 	}
 
 	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
@@ -52,29 +113,25 @@ func RenderFromURLWithReferer(imageURL string, maxCols int, maxRows int, referer
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return Image{}, fmt.Errorf("error downloading image: %w", err)
+		return nil, nil, fmt.Errorf("error downloading image: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return Image{}, fmt.Errorf("image request failed: %s", resp.Status)
+		return nil, nil, fmt.Errorf("image request failed: %s", resp.Status)
 	}
 
 	imageBytes, err := io.ReadAll(io.LimitReader(resp.Body, terminalImageMaxByteSize))
 	if err != nil {
-		return Image{}, fmt.Errorf("error reading image: %w", err)
+		return nil, nil, fmt.Errorf("error reading image: %w", err)
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
-		return Image{}, fmt.Errorf("error decoding image: %w", err)
+		return nil, nil, fmt.Errorf("error decoding image: %w", err)
 	}
 
-	if inlineImage := renderInlineTerminalImage(imageBytes, img, maxCols, maxRows); inlineImage.Text != "" || inlineImage.Raw != "" {
-		return inlineImage, nil
-	}
-
-	return Image{Text: renderTerminalImage(img, maxCols, maxRows)}, nil
+	return imageBytes, img, nil
 }
 
 func RenderFromDataURL(dataURL string, maxCols int, maxRows int) (string, error) {
@@ -110,6 +167,74 @@ func renderInlineTerminalImage(imageBytes []byte, img image.Image, maxCols int, 
 	default:
 		return Image{}
 	}
+}
+
+func composeHorizontalImages(images []image.Image, gap int) image.Image {
+	if len(images) == 0 {
+		return image.NewNRGBA(image.Rect(0, 0, 1, 1))
+	}
+
+	totalWidth := 0
+	maxHeight := 0
+	for _, img := range images {
+		bounds := img.Bounds()
+		totalWidth += bounds.Dx()
+		if bounds.Dy() > maxHeight {
+			maxHeight = bounds.Dy()
+		}
+	}
+	totalWidth += max(0, len(images)-1) * gap
+
+	canvas := image.NewNRGBA(image.Rect(0, 0, totalWidth, maxHeight))
+	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
+
+	x := 0
+	for _, img := range images {
+		bounds := img.Bounds()
+		y := (maxHeight - bounds.Dy()) / 2
+		target := image.Rect(x, y, x+bounds.Dx(), y+bounds.Dy())
+		draw.Draw(canvas, target, img, bounds.Min, draw.Over)
+		x += bounds.Dx() + gap
+	}
+
+	return canvas
+}
+
+func resizeImageToHeight(img image.Image, targetHeight int) image.Image {
+	bounds := img.Bounds()
+	sourceWidth := bounds.Dx()
+	sourceHeight := bounds.Dy()
+	if sourceWidth == 0 || sourceHeight == 0 || targetHeight <= 0 {
+		return image.NewNRGBA(image.Rect(0, 0, 1, 1))
+	}
+
+	targetWidth := max(1, int(math.Round(float64(sourceWidth)*float64(targetHeight)/float64(sourceHeight))))
+	resized := image.NewNRGBA(image.Rect(0, 0, targetWidth, targetHeight))
+
+	for y := 0; y < targetHeight; y++ {
+		sourceY := clamp(int((float64(y)+0.5)*float64(sourceHeight)/float64(targetHeight)), 0, sourceHeight-1)
+		for x := 0; x < targetWidth; x++ {
+			sourceX := clamp(int((float64(x)+0.5)*float64(sourceWidth)/float64(targetWidth)), 0, sourceWidth-1)
+			resized.Set(x, y, img.At(bounds.Min.X+sourceX, bounds.Min.Y+sourceY))
+		}
+	}
+
+	return resized
+}
+
+func rotateImageHalfTurn(img image.Image) image.Image {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	rotated := image.NewNRGBA(image.Rect(0, 0, width, height))
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			rotated.Set(x, y, img.At(bounds.Max.X-1-x, bounds.Max.Y-1-y))
+		}
+	}
+
+	return rotated
 }
 
 func inlineImageProtocol() string {

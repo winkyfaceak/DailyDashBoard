@@ -123,6 +123,11 @@ func (m Model) toggleAudio() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) openPrimaryImage() (tea.Model, tea.Cmd) {
+	if len(m.links.TarotImages) > 0 {
+		m.message = "Opening first tarot card image..."
+		return m, openExternalURLCmd(m.links.TarotImages[0])
+	}
+
 	if m.links.ArtworkImage != "" {
 		m.message = "Opening full artwork image..."
 		return m, openExternalURLCmd(m.links.ArtworkImage)
@@ -180,7 +185,7 @@ func (m Model) handleSelection(selected menuItem) (tea.Model, tea.Cmd) {
 	case actionRandomFact:
 		return m.startFeature("Fetching a random fact...", features.FetchFactCmd())
 	case actionDailyTarot:
-		return m.startFeature("Drawing a tarot card...", features.FetchTarotCmd())
+		return m.startFeature("Drawing a three-card tarot spread...", features.FetchTarotCmd())
 	case actionRandomArtwork:
 		return m.startFeature("Fetching artwork...", features.FetchArtworkCmd())
 	case actionDailyNews:

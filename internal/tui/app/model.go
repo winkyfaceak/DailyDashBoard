@@ -41,7 +41,7 @@ type Model struct {
 type contentState struct {
 	Fact       string
 	Dictionary string
-	Tarot      string
+	Tarot      asyncContent
 	Artwork    asyncContent
 	News       string
 	Music      asyncContent
@@ -54,6 +54,7 @@ type asyncContent struct {
 }
 
 type linkState struct {
+	TarotImages  []string
 	ArtworkImage string
 	MusicImage   string
 	MusicTrack   string

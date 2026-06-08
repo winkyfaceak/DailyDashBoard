@@ -25,6 +25,10 @@ func (m Model) View() tea.View {
 		helpText += " • p to " + audioAction + " " + m.currentAudioLabel()
 	}
 
+	if len(m.links.TarotImages) > 0 {
+		helpText += " • o to open first tarot card image"
+	}
+
 	if m.links.ArtworkImage != "" {
 		helpText += " • o to open image"
 	}
@@ -87,8 +91,8 @@ func (m Model) View() tea.View {
 		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.content.Dictionary))
 	}
 
-	if m.content.Tarot != "" {
-		contentParts = append(contentParts, tarotBoxStyle.Render(m.content.Tarot))
+	if m.content.Tarot.Text != "" {
+		contentParts = append(contentParts, tarotBoxStyle.Render(m.content.Tarot.Text))
 	}
 
 	if m.content.Artwork.Text != "" {

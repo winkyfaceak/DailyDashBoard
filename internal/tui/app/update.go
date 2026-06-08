@@ -11,6 +11,7 @@ import (
 type artworkImageReadyMsg struct{}
 type musicImageReadyMsg struct{}
 type recipeImageReadyMsg struct{}
+type tarotImageReadyMsg struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -34,6 +35,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleMusicImageReady()
 	case recipeImageReadyMsg:
 		return m.handleRecipeImageReady()
+	case tarotImageReadyMsg:
+		return m.handleTarotImageReady()
 	case audio.StartedMsg:
 		return m.handleAudioStarted(msg)
 	case audio.FinishedMsg:
@@ -93,7 +96,20 @@ func (m Model) handleTarotResult(msg features.TarotResultMsg) (tea.Model, tea.Cm
 	}
 
 	m.message = ""
-	m.content.Tarot = features.FormatTarotReading(msg.Reading)
+	m.links.TarotImages = features.TarotImageLinks(msg.Reading)
+
+	readyResult := features.FormatTarotReading(msg.Reading, msg.Image.Text)
+	if msg.Image.Raw != "" {
+		m.content.Tarot.Text = features.FormatTarotReading(msg.Reading, features.SubtleText("Rendering tarot cards..."))
+		m.content.Tarot.Pending = readyResult
+
+		return m, tea.Sequence(
+			tea.Raw(msg.Image.Raw),
+			func() tea.Msg { return tarotImageReadyMsg{} },
+		)
+	}
+
+	m.content.Tarot.Text = readyResult
 
 	return m, nil
 }
@@ -227,6 +243,15 @@ func (m Model) handleRecipeImageReady() (tea.Model, tea.Cmd) {
 	if m.content.Recipe.Pending != "" {
 		m.content.Recipe.Text = m.content.Recipe.Pending
 		m.content.Recipe.Pending = ""
+	}
+
+	return m, nil
+}
+
+func (m Model) handleTarotImageReady() (tea.Model, tea.Cmd) {
+	if m.content.Tarot.Pending != "" {
+		m.content.Tarot.Text = m.content.Tarot.Pending
+		m.content.Tarot.Pending = ""
 	}
 
 	return m, nil
