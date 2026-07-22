@@ -1,123 +1,32 @@
 package features
 
-import "charm.land/lipgloss/v2"
+import (
+	"DailyDashBoard/internal/tui/theme"
 
-var (
-	primaryColor = lipgloss.Color("#7D56F4")
-	successColor = lipgloss.Color("#04B575")
-	textColor    = lipgloss.Color("#FAFAFA")
-	mutedColor   = lipgloss.Color("#A8A8A8")
+	"charm.land/lipgloss/v2"
 )
 
+// Shared styles, all derived from the theme package so the whole app uses a
+// single palette. Feature headers use theme.Header(width) directly.
 var (
-	wordStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor).
-			Background(primaryColor).
-			Padding(0, 1)
+	wordStyle = theme.Title
 
-	labelStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(primaryColor)
+	labelStyle = theme.Label
 
 	partOfSpeechStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(successColor)
+				Foreground(theme.Success)
 
-	factHeaderStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor).
-			Background(primaryColor).
-			Padding(0, 1).
-			MaxWidth(factTextWidth)
+	exampleStyle = theme.Example
 
-	mathHeaderStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor).
-			Background(primaryColor).
-			Padding(0, 1).
-			MaxWidth(mathTextWidth)
+	subtleTextStyle = theme.Subtle
 
-	mathQuestionStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor)
+	successTextStyle = theme.SuccessText
 
-	triviaHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(triviaTextWidth)
-
-	exampleStyle = lipgloss.NewStyle().
-			Italic(true).
-			Foreground(mutedColor)
-
-	tarotHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(tarotTextWidth)
-
-	tarotCardStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor)
-
-	artworkHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(artworkTextWidth)
-
-	newsHeaderStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor).
-			Background(primaryColor).
-			Padding(0, 1).
-			MaxWidth(newsTextWidth)
-
-	newsHeadlineStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor)
-
-	musicHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(musicTextWidth)
-
-	musicTrackStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor)
-
-	musicTriviaHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(musicTriviaTextWidth)
-
-	recipeHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(textColor).
-				Background(primaryColor).
-				Padding(0, 1).
-				MaxWidth(recipeTextWidth)
-
-	recipeNameStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(textColor)
-
-	subtleTextStyle = lipgloss.NewStyle().
-			Foreground(mutedColor)
-
-	successTextStyle = lipgloss.NewStyle().
-				Foreground(successColor)
+	strongTextStyle = theme.Emphasis
 )
 
+// SubtleText renders muted secondary text.
 func SubtleText(value string) string {
 	return subtleTextStyle.Render(value)
 }

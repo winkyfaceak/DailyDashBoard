@@ -1,4 +1,4 @@
-package app
+package features
 
 import (
 	"DailyDashBoard/internal/daily"
@@ -6,9 +6,7 @@ import (
 )
 
 func TestMusicTriviaGuessFlow(t *testing.T) {
-	m := InitialModel()
-	m.musicTrivia = musicTriviaState{
-		Active: true,
+	s := &MusicTriviaSession{
 		Question: daily.MusicTriviaQuestion{
 			Pick: daily.MusicPick{
 				ArtistName: "Prince",
@@ -18,25 +16,20 @@ func TestMusicTriviaGuessFlow(t *testing.T) {
 			GuessKind: daily.MusicTriviaGuessArtist,
 		},
 	}
-	m.content.MusicTrivia = m.formatMusicTriviaContent()
 
 	for _, key := range []string{"P", "r", "i", "n", "c", "e"} {
-		updated, _ := m.handleMusicTriviaKeyPress(keyPress(key))
-		m = updated.(Model)
+		s.HandleKey(keyPress(key))
 	}
 
-	updated, _ := m.handleMusicTriviaKeyPress(keyPress("enter"))
-	m = updated.(Model)
+	s.HandleKey(keyPress("enter"))
 
-	if !m.musicTrivia.Solved {
+	if !s.Solved {
 		t.Fatal("expected music trivia to be solved")
 	}
 }
 
 func TestMusicTriviaLettersRemainTypeable(t *testing.T) {
-	m := InitialModel()
-	m.musicTrivia = musicTriviaState{
-		Active: true,
+	s := &MusicTriviaSession{
 		Question: daily.MusicTriviaQuestion{
 			Pick: daily.MusicPick{
 				ArtistName: "Pulp",
@@ -46,22 +39,18 @@ func TestMusicTriviaLettersRemainTypeable(t *testing.T) {
 			GuessKind: daily.MusicTriviaGuessSong,
 		},
 	}
-	m.content.MusicTrivia = m.formatMusicTriviaContent()
 
 	for _, key := range []string{"h", "e", "l", "p"} {
-		updated, _ := m.handleMusicTriviaKeyPress(keyPress(key))
-		m = updated.(Model)
+		s.HandleKey(keyPress(key))
 	}
 
-	if m.musicTrivia.GuessInput != "help" {
-		t.Fatalf("expected h and p to be typeable, got %q", m.musicTrivia.GuessInput)
+	if s.GuessInput != "help" {
+		t.Fatalf("expected h and p to be typeable, got %q", s.GuessInput)
 	}
 }
 
 func TestMusicTriviaHintUnlocksAfterWrongGuesses(t *testing.T) {
-	m := InitialModel()
-	m.musicTrivia = musicTriviaState{
-		Active: true,
+	s := &MusicTriviaSession{
 		Question: daily.MusicTriviaQuestion{
 			Pick: daily.MusicPick{
 				ArtistName:   "Kate Bush",
@@ -73,24 +62,43 @@ func TestMusicTriviaHintUnlocksAfterWrongGuesses(t *testing.T) {
 			GuessKind: daily.MusicTriviaGuessSong,
 		},
 	}
-	m.content.MusicTrivia = m.formatMusicTriviaContent()
 
-	updated, _ := m.revealMusicTriviaHint()
-	m = updated.(Model)
-	if m.musicTrivia.HintCount != 0 {
+	s.revealHint()
+	if s.HintCount != 0 {
 		t.Fatal("expected hint to stay locked before guesses")
 	}
 
 	for range 2 {
-		m.musicTrivia.GuessInput = "wrong"
-		updated, _ = m.submitMusicTriviaGuess()
-		m = updated.(Model)
+		s.GuessInput = "wrong"
+		s.submitGuess()
 	}
 
-	updated, _ = m.handleMusicTriviaKeyPress(keyPress("?"))
-	m = updated.(Model)
+	s.HandleKey(keyPress("?"))
 
-	if m.musicTrivia.HintCount != 1 {
-		t.Fatalf("expected one hint, got %d", m.musicTrivia.HintCount)
+	if s.HintCount != 1 {
+		t.Fatalf("expected one hint, got %d", s.HintCount)
+	}
+}
+
+func TestMusicTriviaEscapeClears(t *testing.T) {
+	s := &MusicTriviaSession{
+		Question: daily.MusicTriviaQuestion{
+			Pick: daily.MusicPick{
+				ArtistName: "Prince",
+				TrackName:  "Kiss",
+				PreviewURL: "https://example.com/preview.m4a",
+			},
+			GuessKind: daily.MusicTriviaGuessArtist,
+		},
+	}
+
+	response := s.HandleKey(keyPress("esc"))
+
+	if !response.Clear {
+		t.Fatal("expected escape to clear the session")
+	}
+
+	if response.Message != "Music trivia cleared." {
+		t.Fatalf("expected clear message, got %q", response.Message)
 	}
 }

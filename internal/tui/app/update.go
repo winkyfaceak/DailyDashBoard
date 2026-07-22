@@ -3,46 +3,21 @@ package app
 import (
 	"DailyDashBoard/internal/tui/audio"
 	"DailyDashBoard/internal/tui/features"
+	"errors"
 	"fmt"
 
 	tea "charm.land/bubbletea/v2"
 )
 
-type artworkImageReadyMsg struct{}
-type musicImageReadyMsg struct{}
-type recipeImageReadyMsg struct{}
-type tarotImageReadyMsg struct{}
+// imageShownMsg fires after a session's raw terminal image has been flushed.
+type imageShownMsg struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case features.FactResultMsg:
-		return m.handleFactResult(msg)
-	case features.MathResultMsg:
-		return m.handleMathResult(msg)
-	case features.TriviaResultMsg:
-		return m.handleTriviaResult(msg)
-	case features.DictionaryResultMsg:
-		return m.handleDictionaryResult(msg)
-	case features.TarotResultMsg:
-		return m.handleTarotResult(msg)
-	case features.ArtworkResultMsg:
-		return m.handleArtworkResult(msg)
-	case features.NewsResultMsg:
-		return m.handleNewsResult(msg)
-	case features.MusicResultMsg:
-		return m.handleMusicResult(msg)
-	case features.MusicTriviaResultMsg:
-		return m.handleMusicTriviaResult(msg)
-	case features.RecipeResultMsg:
-		return m.handleRecipeResult(msg)
-	case artworkImageReadyMsg:
-		return m.handleArtworkImageReady()
-	case musicImageReadyMsg:
-		return m.handleMusicImageReady()
-	case recipeImageReadyMsg:
-		return m.handleRecipeImageReady()
-	case tarotImageReadyMsg:
-		return m.handleTarotImageReady()
+	case features.ResultMsg:
+		return m.handleFeatureResult(msg)
+	case imageShownMsg:
+		return m.handleImageShown()
 	case audio.StartedMsg:
 		return m.handleAudioStarted(msg)
 	case audio.FinishedMsg:
@@ -56,266 +31,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m Model) handleFactResult(msg features.FactResultMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleFeatureResult(msg features.ResultMsg) (tea.Model, tea.Cmd) {
 	m = m.clearResultContent()
 
 	if msg.Err != nil {
-		m.message = fmt.Sprintf("Fact error: %v", msg.Err)
+		var notice features.Notice
+		if errors.As(msg.Err, &notice) {
+			m.message = string(notice)
+		} else {
+			m.message = fmt.Sprintf("%s error: %v", msg.Feature.ErrLabel, msg.Err)
+		}
+
 		return m, nil
 	}
 
 	m.message = ""
-	m.content.Fact = features.FormatFact(msg.Fact)
+	m.feature = msg.Feature
+	m.session = msg.Session
 
-	return m, nil
-}
-
-func (m Model) handleMathResult(msg features.MathResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Math error: %v", msg.Err)
-		return m, nil
+	if session, ok := msg.Session.(features.AudioSession); ok {
+		spec := session.Audio()
+		m.audio.URL = spec.URL
+		m.audio.Label = spec.Label
+		m.audio.AllowDownload = spec.AllowDownload
 	}
 
-	m.message = ""
-	m.math = mathState{
-		Active:   true,
-		Question: msg.Question,
-	}
-	m.content.Math = m.formatMathContent()
-
-	return m, nil
-}
-
-func (m Model) handleTriviaResult(msg features.TriviaResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Trivia error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.trivia = triviaState{
-		Active:         true,
-		Question:       msg.Question,
-		SelectedChoice: -1,
-	}
-	m.content.Trivia = m.formatTriviaContent()
-
-	return m, nil
-}
-
-func (m Model) handleDictionaryResult(msg features.DictionaryResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Dictionary error: %v", msg.Err)
-		return m, nil
-	}
-
-	if len(msg.Entries) == 0 {
-		m.message = "No dictionary entries found."
-		return m, nil
-	}
-
-	entry := msg.Entries[0]
-	m.message = ""
-	m.audio.URL = features.FirstAudio(entry.Phonetics)
-	m.audio.Label = "pronunciation"
-	m.audio.AllowDownload = true
-	m.content.Dictionary = features.FormatDictionaryEntry(entry)
-
-	return m, nil
-}
-
-func (m Model) handleTarotResult(msg features.TarotResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Tarot error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.links.TarotImages = features.TarotImageLinks(msg.Reading)
-
-	readyResult := features.FormatTarotReading(msg.Reading, msg.Image.Text)
-	if msg.Image.Raw != "" {
-		m.content.Tarot.Text = features.FormatTarotReading(msg.Reading, features.SubtleText("Rendering tarot cards..."))
-		m.content.Tarot.Pending = readyResult
-
-		return m, tea.Sequence(
-			tea.Raw(msg.Image.Raw),
-			func() tea.Msg { return tarotImageReadyMsg{} },
-		)
-	}
-
-	m.content.Tarot.Text = readyResult
-
-	return m, nil
-}
-
-func (m Model) handleArtworkResult(msg features.ArtworkResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Artwork error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.links.ArtworkImage = features.PreferredArtworkImageURL(msg.Artwork)
-
-	readyResult := features.FormatArtwork(msg.Artwork, msg.Image.Text)
-	if msg.Image.Raw != "" {
-		m.content.Artwork.Text = features.FormatArtwork(msg.Artwork, features.SubtleText("Rendering high-quality image..."))
-		m.content.Artwork.Pending = readyResult
-
-		return m, tea.Sequence(
-			tea.Raw(msg.Image.Raw),
-			func() tea.Msg { return artworkImageReadyMsg{} },
-		)
-	}
-
-	m.content.Artwork.Text = readyResult
-
-	return m, nil
-}
-
-func (m Model) handleNewsResult(msg features.NewsResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("News error: %v", msg.Err)
-		return m, nil
-	}
-
-	if len(msg.Items) == 0 {
-		m.message = "No news stories found."
-		return m, nil
-	}
-
-	m.message = ""
-	m.content.News = features.FormatNewsItems(msg.Items)
-	m.links.NewsStories = features.NewsLinks(msg.Items)
-
-	return m, nil
-}
-
-func (m Model) handleMusicResult(msg features.MusicResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Music error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.links.MusicImage = msg.Pick.ArtworkURL
-	m.links.MusicTrack = msg.Pick.TrackURL
-	m.audio.URL = msg.Pick.PreviewURL
-	m.audio.Label = "preview"
-	m.audio.AllowDownload = true
-
-	readyResult := features.FormatMusic(msg.Pick, msg.Image.Text)
-	if msg.Image.Raw != "" {
-		m.content.Music.Text = features.FormatMusic(msg.Pick, features.SubtleText("Rendering album art..."))
-		m.content.Music.Pending = readyResult
-
-		return m, tea.Sequence(
-			tea.Raw(msg.Image.Raw),
-			func() tea.Msg { return musicImageReadyMsg{} },
-		)
-	}
-
-	m.content.Music.Text = readyResult
-
-	return m, nil
-}
-
-func (m Model) handleMusicTriviaResult(msg features.MusicTriviaResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Music trivia error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.musicTrivia = musicTriviaState{
-		Active:   true,
-		Question: msg.Question,
-	}
-	m.audio.URL = msg.Question.Pick.PreviewURL
-	m.audio.Label = "mystery preview"
-	m.audio.AllowDownload = true
-	m.content.MusicTrivia = m.formatMusicTriviaContent()
-
-	return m, nil
-}
-
-func (m Model) handleRecipeResult(msg features.RecipeResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
-
-	if msg.Err != nil {
-		m.message = fmt.Sprintf("Recipe error: %v", msg.Err)
-		return m, nil
-	}
-
-	m.message = ""
-	m.links.RecipeImage = msg.Recipe.ImageURL
-	m.links.RecipeSource = msg.Recipe.SourceURL
-	m.links.RecipeVideo = msg.Recipe.YouTubeURL
-
-	readyResult := features.FormatRecipe(msg.Recipe, msg.Image.Text)
-	if msg.Image.Raw != "" {
-		m.content.Recipe.Text = features.FormatRecipe(msg.Recipe, features.SubtleText("Rendering food image..."))
-		m.content.Recipe.Pending = readyResult
-
-		return m, tea.Sequence(
-			tea.Raw(msg.Image.Raw),
-			func() tea.Msg { return recipeImageReadyMsg{} },
-		)
-	}
-
-	m.content.Recipe.Text = readyResult
-
-	return m, nil
-}
-
-func (m Model) handleArtworkImageReady() (tea.Model, tea.Cmd) {
-	if m.content.Artwork.Pending != "" {
-		m.content.Artwork.Text = m.content.Artwork.Pending
-		m.content.Artwork.Pending = ""
+	if session, ok := msg.Session.(features.ImageSession); ok {
+		if raw := session.RawImage(); raw != "" {
+			return m, tea.Sequence(
+				tea.Raw(raw),
+				func() tea.Msg { return imageShownMsg{} },
+			)
+		}
 	}
 
 	return m, nil
 }
 
-func (m Model) handleMusicImageReady() (tea.Model, tea.Cmd) {
-	if m.content.Music.Pending != "" {
-		m.content.Music.Text = m.content.Music.Pending
-		m.content.Music.Pending = ""
-	}
-
-	return m, nil
-}
-
-func (m Model) handleRecipeImageReady() (tea.Model, tea.Cmd) {
-	if m.content.Recipe.Pending != "" {
-		m.content.Recipe.Text = m.content.Recipe.Pending
-		m.content.Recipe.Pending = ""
-	}
-
-	return m, nil
-}
-
-func (m Model) handleTarotImageReady() (tea.Model, tea.Cmd) {
-	if m.content.Tarot.Pending != "" {
-		m.content.Tarot.Text = m.content.Tarot.Pending
-		m.content.Tarot.Pending = ""
+func (m Model) handleImageShown() (tea.Model, tea.Cmd) {
+	if session, ok := m.session.(features.ImageSession); ok {
+		session.ImageShown()
 	}
 
 	return m, nil

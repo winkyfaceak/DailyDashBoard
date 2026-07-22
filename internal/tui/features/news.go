@@ -3,12 +3,11 @@ package features
 import (
 	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/textutil"
+	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 const (
@@ -16,26 +15,50 @@ const (
 	newsTextWidth = 78
 )
 
-type NewsResultMsg struct {
-	Items []daily.NewsItem
-	Err   error
+// DailyNews shows top stories from the configured RSS feeds.
+func DailyNews() *Feature {
+	return &Feature{
+		MenuLabel: "daily news",
+		Loading:   "Fetching daily news...",
+		ErrLabel:  "News",
+		BoxWidth:  92,
+		Fetch: func() (Session, error) {
+			items, err := daily.DailyNews(daily.DefaultNewsFeeds(), newsItemLimit)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(items) == 0 {
+				return nil, Notice("No news stories found.")
+			}
+
+			return &NewsSession{Items: items}, nil
+		},
+	}
 }
 
-func FetchNewsCmd() tea.Cmd {
-	return func() tea.Msg {
-		items, err := daily.DailyNews(daily.DefaultNewsFeeds(), newsItemLimit)
+// NewsSession renders a numbered list of news stories.
+type NewsSession struct {
+	Items []daily.NewsItem
+}
 
-		return NewsResultMsg{
-			Items: items,
-			Err:   err,
-		}
+func (s *NewsSession) View() string {
+	return FormatNewsItems(s.Items)
+}
+
+func (s *NewsSession) StoryLinks() []string {
+	links := make([]string, len(s.Items))
+	for i, item := range s.Items {
+		links[i] = item.Link
 	}
+
+	return links
 }
 
 func FormatNewsItems(items []daily.NewsItem) string {
 	var builder strings.Builder
 
-	builder.WriteString(newsHeaderStyle.Render("Daily News"))
+	builder.WriteString(theme.Header(newsTextWidth).Render("Daily News"))
 	builder.WriteString("\n\n")
 
 	for i, item := range items {
@@ -66,15 +89,7 @@ func FormatNewsItems(items []daily.NewsItem) string {
 	return builder.String()
 }
 
-func NewsLinks(items []daily.NewsItem) []string {
-	links := make([]string, len(items))
-	for i, item := range items {
-		links[i] = item.Link
-	}
-
-	return links
-}
-
+// NewsLinkIndex maps the keys 1-9 to a story index.
 func NewsLinkIndex(key string) (int, bool) {
 	if len(key) != 1 || key[0] < '1' || key[0] > '9' {
 		return 0, false
@@ -98,7 +113,7 @@ func formatNewsHeadline(number string, title string) string {
 		lines[i] = "   " + line
 	}
 
-	return newsHeadlineStyle.Render(strings.Join(lines, "\n"))
+	return strongTextStyle.Render(strings.Join(lines, "\n"))
 }
 
 func formatNewsMeta(item daily.NewsItem) string {

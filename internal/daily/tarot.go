@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -115,25 +114,18 @@ func RandomTarotReading() (TarotReading, error) {
 		return TarotReading{}, fmt.Errorf("error parsing tarot card URL: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return TarotReading{}, fmt.Errorf("error creating tarot card request: %w", err)
-	}
+	var cards []TarotCard
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
+	err = getJSON(endpoint.String(), "tarot card", func(body io.Reader) error {
+		decoded, decodeErr := decodeRandomTarotCards(body)
+		if decodeErr != nil {
+			return decodeErr
+		}
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return TarotReading{}, fmt.Errorf("error sending tarot card request: %w", err)
-	}
-	defer resp.Body.Close()
+		cards = decoded
 
-	if resp.StatusCode != http.StatusOK {
-		return TarotReading{}, fmt.Errorf("tarot card API error: %s", resp.Status)
-	}
-
-	cards, err := decodeRandomTarotCards(resp.Body)
+		return nil
+	})
 	if err != nil {
 		return TarotReading{}, err
 	}

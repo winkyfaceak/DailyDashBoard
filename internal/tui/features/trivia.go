@@ -3,6 +3,7 @@ package features
 import (
 	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/textutil"
+	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
 
@@ -11,26 +12,82 @@ import (
 
 const triviaTextWidth = 70
 
-type TriviaResultMsg struct {
-	Question daily.TriviaQuestion
-	Err      error
+// RandomTrivia poses a multiple-choice trivia question.
+func RandomTrivia() *Feature {
+	return &Feature{
+		MenuLabel: "random trivia",
+		Loading:   "Fetching a trivia question...",
+		ErrLabel:  "Trivia",
+		BoxWidth:  84,
+		Fetch: func() (Session, error) {
+			question, err := daily.RandomTriviaQuestion()
+			if err != nil {
+				return nil, err
+			}
+
+			return &TriviaSession{
+				Question:       question,
+				SelectedChoice: -1,
+			}, nil
+		},
+	}
 }
 
-func FetchTriviaCmd() tea.Cmd {
-	return func() tea.Msg {
-		question, err := daily.RandomTriviaQuestion()
+// TriviaSession is the interactive multiple-choice quiz.
+type TriviaSession struct {
+	Question       daily.TriviaQuestion
+	Submitted      bool
+	SelectedChoice int
+}
 
-		return TriviaResultMsg{
-			Question: question,
-			Err:      err,
-		}
+func (s *TriviaSession) View() string {
+	return FormatTriviaQuestion(s.Question, s.Submitted, s.SelectedChoice)
+}
+
+func (s *TriviaSession) Help() string {
+	return "press 1-4 to answer • esc to clear • ctrl+c to quit"
+}
+
+func (s *TriviaSession) HandleKey(msg tea.KeyPressMsg) KeyResponse {
+	switch msg.String() {
+	case "esc":
+		return KeyResponse{Clear: true, Message: "Trivia question cleared."}
+	}
+
+	if s.Submitted {
+		return KeyResponse{}
+	}
+
+	choiceIndex, ok := triviaChoiceIndex(msg.String())
+	if !ok || choiceIndex >= len(s.Question.Choices) {
+		return KeyResponse{}
+	}
+
+	s.Submitted = true
+	s.SelectedChoice = choiceIndex
+
+	return KeyResponse{Handled: true}
+}
+
+func triviaChoiceIndex(key string) (int, bool) {
+	switch key {
+	case "1":
+		return 0, true
+	case "2":
+		return 1, true
+	case "3":
+		return 2, true
+	case "4":
+		return 3, true
+	default:
+		return 0, false
 	}
 }
 
 func FormatTriviaQuestion(question daily.TriviaQuestion, submitted bool, selectedChoice int) string {
 	var builder strings.Builder
 
-	builder.WriteString(triviaHeaderStyle.Render("Random Trivia"))
+	builder.WriteString(theme.Header(triviaTextWidth).Render("Random Trivia"))
 	builder.WriteString("\n\n")
 
 	meta := formatTriviaMeta(question)

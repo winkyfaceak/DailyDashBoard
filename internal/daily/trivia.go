@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -41,25 +40,18 @@ func RandomTriviaQuestion() (TriviaQuestion, error) {
 		return TriviaQuestion{}, fmt.Errorf("error parsing trivia URL: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return TriviaQuestion{}, fmt.Errorf("error creating trivia request: %w", err)
-	}
+	var question TriviaQuestion
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
+	err = getJSON(endpoint.String(), "trivia", func(body io.Reader) error {
+		decoded, decodeErr := decodeRandomTriviaQuestion(body)
+		if decodeErr != nil {
+			return decodeErr
+		}
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return TriviaQuestion{}, fmt.Errorf("error sending trivia request: %w", err)
-	}
-	defer resp.Body.Close()
+		question = decoded
 
-	if resp.StatusCode != http.StatusOK {
-		return TriviaQuestion{}, fmt.Errorf("trivia API error: %s", resp.Status)
-	}
-
-	question, err := decodeRandomTriviaQuestion(resp.Body)
+		return nil
+	})
 	if err != nil {
 		return TriviaQuestion{}, err
 	}

@@ -1,20 +1,14 @@
 package daily
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
-const (
-	legacyRandomWordURL  = "https://random-word-api.herokuapp.com/word"
-	randomWordAPITimeout = 10 * time.Second
-)
+const legacyRandomWordURL = "https://random-word-api.herokuapp.com/word"
 
 var randomWordURL = "https://www.wordgamedb.com/api/v2/words/random"
 
@@ -30,29 +24,18 @@ func randomWordFromAPI(language string) (string, error) {
 		return "", fmt.Errorf("error parsing random word URL: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), randomWordAPITimeout)
-	defer cancel()
+	var word string
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return "", fmt.Errorf("error creating random word request: %w", err)
-	}
+	err = getJSON(endpoint.String(), "random word", func(body io.Reader) error {
+		decoded, decodeErr := decodeRandomWord(body)
+		if decodeErr != nil {
+			return decodeErr
+		}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
+		word = decoded
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("error sending random word request: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("random word API error: %s", resp.Status)
-	}
-
-	word, err := decodeRandomWord(resp.Body)
+		return nil
+	})
 	if err != nil {
 		return "", err
 	}

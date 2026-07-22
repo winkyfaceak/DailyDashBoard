@@ -4,10 +4,9 @@ import (
 	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/terminalimage"
 	"DailyDashBoard/internal/tui/textutil"
+	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 const (
@@ -16,24 +15,68 @@ const (
 	recipeImageRows = 18
 )
 
-type RecipeResultMsg struct {
-	Recipe daily.Recipe
-	Image  terminalimage.Image
-	Err    error
+// RandomRecipe shows a random recipe from TheMealDB.
+func RandomRecipe() *Feature {
+	return &Feature{
+		MenuLabel: "random recipe",
+		Loading:   "Finding a random recipe...",
+		ErrLabel:  "Recipe",
+		BoxWidth:  84,
+		Fetch: func() (Session, error) {
+			recipe, err := daily.RandomRecipe()
+			if err != nil {
+				return nil, err
+			}
+
+			return &RecipeSession{
+				Recipe:     recipe,
+				imageState: newImageState(renderRecipeImage(recipe)),
+			}, nil
+		},
+	}
 }
 
-func FetchRecipeCmd() tea.Cmd {
-	return func() tea.Msg {
-		recipe, err := daily.RandomRecipe()
-		if err != nil {
-			return RecipeResultMsg{Err: err}
-		}
+// RecipeSession renders a recipe with its food image and source links.
+type RecipeSession struct {
+	imageState
+	Recipe daily.Recipe
+}
 
-		return RecipeResultMsg{
-			Recipe: recipe,
-			Image:  renderRecipeImage(recipe),
-		}
+func (s *RecipeSession) View() string {
+	return FormatRecipe(s.Recipe, s.imageText("Rendering food image..."))
+}
+
+func (s *RecipeSession) Links() []LinkAction {
+	var links []LinkAction
+
+	if s.Recipe.ImageURL != "" {
+		links = append(links, LinkAction{
+			Key:     "o",
+			URL:     s.Recipe.ImageURL,
+			Help:    "o to open food image",
+			Message: "Opening food image...",
+		})
 	}
+
+	if s.Recipe.SourceURL != "" {
+		links = append(links, LinkAction{
+			Key:     "r",
+			URL:     s.Recipe.SourceURL,
+			Help:    "r to open recipe",
+			Message: "Opening recipe source...",
+		})
+	}
+
+	if s.Recipe.YouTubeURL != "" {
+		links = append(links, LinkAction{
+			Key:     "v",
+			URL:     s.Recipe.YouTubeURL,
+			Help:    "v to open video",
+			Message: "Opening cooking video...",
+		})
+	}
+
+	return links
 }
 
 func renderRecipeImage(recipe daily.Recipe) terminalimage.Image {
@@ -52,7 +95,7 @@ func renderRecipeImage(recipe daily.Recipe) terminalimage.Image {
 func FormatRecipe(recipe daily.Recipe, renderedImage string) string {
 	var builder strings.Builder
 
-	builder.WriteString(recipeHeaderStyle.Render(formatRecipeHeader(recipe)))
+	builder.WriteString(theme.Header(recipeTextWidth).Render(formatRecipeHeader(recipe)))
 	builder.WriteString("\n\n")
 
 	if renderedImage != "" {
@@ -61,7 +104,7 @@ func FormatRecipe(recipe daily.Recipe, renderedImage string) string {
 	}
 
 	builder.WriteString(labelStyle.Render("Recipe: "))
-	builder.WriteString(recipeNameStyle.Render(recipe.Name))
+	builder.WriteString(strongTextStyle.Render(recipe.Name))
 	builder.WriteString("\n")
 
 	meta := formatRecipeMeta(recipe)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"net/http"
 	"strings"
 )
 
@@ -34,25 +33,18 @@ type randomRecipeResponse struct {
 }
 
 func RandomRecipe() (Recipe, error) {
-	req, err := http.NewRequest(http.MethodGet, randomRecipeURL, nil)
-	if err != nil {
-		return Recipe{}, fmt.Errorf("error creating recipe request: %w", err)
-	}
+	var recipe Recipe
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
+	err := getJSON(randomRecipeURL, "recipe", func(body io.Reader) error {
+		decoded, decodeErr := decodeRandomRecipe(body)
+		if decodeErr != nil {
+			return decodeErr
+		}
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return Recipe{}, fmt.Errorf("error sending recipe request: %w", err)
-	}
-	defer resp.Body.Close()
+		recipe = decoded
 
-	if resp.StatusCode != http.StatusOK {
-		return Recipe{}, fmt.Errorf("recipe API error: %s", resp.Status)
-	}
-
-	recipe, err := decodeRandomRecipe(resp.Body)
+		return nil
+	})
 	if err != nil {
 		return Recipe{}, err
 	}

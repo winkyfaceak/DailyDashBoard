@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -34,25 +33,18 @@ func RandomFact(language string) (Fact, error) {
 		return Fact{}, fmt.Errorf("error parsing random fact URL: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return Fact{}, fmt.Errorf("error creating random fact request: %w", err)
-	}
+	var fact Fact
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
+	err = getJSON(endpoint.String(), "random fact", func(body io.Reader) error {
+		decoded, decodeErr := decodeRandomFact(body)
+		if decodeErr != nil {
+			return decodeErr
+		}
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return Fact{}, fmt.Errorf("error sending random fact request: %w", err)
-	}
-	defer resp.Body.Close()
+		fact = decoded
 
-	if resp.StatusCode != http.StatusOK {
-		return Fact{}, fmt.Errorf("random fact API error: %s", resp.Status)
-	}
-
-	fact, err := decodeRandomFact(resp.Body)
+		return nil
+	})
 	if err != nil {
 		return Fact{}, err
 	}

@@ -1,5 +1,7 @@
 package app
 
+import "DailyDashBoard/internal/tui/features"
+
 func (m Model) clearContent() Model {
 	m.stopAudio()
 	m.audio.RequestID++
@@ -11,11 +13,8 @@ func (m Model) clearContent() Model {
 }
 
 func (m Model) clearResultContent() Model {
-	m.content = contentState{}
-	m.links = linkState{}
-	m.math = mathState{}
-	m.trivia = triviaState{}
-	m.musicTrivia = musicTriviaState{}
+	m.feature = nil
+	m.session = nil
 	m.audio.URL = ""
 	m.audio.Label = ""
 	m.audio.AllowDownload = false
@@ -39,4 +38,32 @@ func (m Model) currentAudioLabel() string {
 	}
 
 	return "audio"
+}
+
+// sessionLinks returns the active session's key-triggered links, if any.
+func (m Model) sessionLinks() []features.LinkAction {
+	if session, ok := m.session.(features.LinkSession); ok {
+		return session.Links()
+	}
+
+	return nil
+}
+
+// storyLinks returns the active session's numbered story links, if any.
+func (m Model) storyLinks() []string {
+	if session, ok := m.session.(features.StorySession); ok {
+		return session.StoryLinks()
+	}
+
+	return nil
+}
+
+func (m Model) linkForKey(key string) (features.LinkAction, bool) {
+	for _, link := range m.sessionLinks() {
+		if link.Key == key && link.URL != "" {
+			return link, true
+		}
+	}
+
+	return features.LinkAction{}, false
 }

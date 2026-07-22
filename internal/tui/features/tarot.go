@@ -4,12 +4,11 @@ import (
 	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/terminalimage"
 	"DailyDashBoard/internal/tui/textutil"
+	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 const (
@@ -18,24 +17,49 @@ const (
 	tarotImageRows = 16
 )
 
-type TarotResultMsg struct {
-	Reading daily.TarotReading
-	Image   terminalimage.Image
-	Err     error
+// DailyTarot draws a three-card tarot spread.
+func DailyTarot() *Feature {
+	return &Feature{
+		MenuLabel: "daily tarot",
+		Loading:   "Drawing a three-card tarot spread...",
+		ErrLabel:  "Tarot",
+		BoxWidth:  84,
+		Fetch: func() (Session, error) {
+			reading, err := daily.RandomTarotReading()
+			if err != nil {
+				return nil, err
+			}
+
+			return &TarotSession{
+				Reading:    reading,
+				imageState: newImageState(renderTarotImage(reading)),
+			}, nil
+		},
+	}
 }
 
-func FetchTarotCmd() tea.Cmd {
-	return func() tea.Msg {
-		reading, err := daily.RandomTarotReading()
-		if err != nil {
-			return TarotResultMsg{Err: err}
-		}
+// TarotSession renders a tarot reading with card images.
+type TarotSession struct {
+	imageState
+	Reading daily.TarotReading
+}
 
-		return TarotResultMsg{
-			Reading: reading,
-			Image:   renderTarotImage(reading),
-		}
+func (s *TarotSession) View() string {
+	return FormatTarotReading(s.Reading, s.imageText("Rendering tarot cards..."))
+}
+
+func (s *TarotSession) Links() []LinkAction {
+	links := TarotImageLinks(s.Reading)
+	if len(links) == 0 {
+		return nil
 	}
+
+	return []LinkAction{{
+		Key:     "o",
+		URL:     links[0],
+		Help:    "o to open first tarot card image",
+		Message: "Opening first tarot card image...",
+	}}
 }
 
 func renderTarotImage(reading daily.TarotReading) terminalimage.Image {
@@ -71,7 +95,7 @@ func FormatTarotReading(reading daily.TarotReading, renderedImage string) string
 		header += " -> " + reading.SpreadName
 	}
 
-	builder.WriteString(tarotHeaderStyle.Render(header))
+	builder.WriteString(theme.Header(tarotTextWidth).Render(header))
 	builder.WriteString("\n\n")
 
 	if renderedImage != "" {
@@ -105,7 +129,7 @@ func FormatTarotReading(reading daily.TarotReading, renderedImage string) string
 func formatSingleTarotCard(reading daily.TarotReading) string {
 	var builder strings.Builder
 
-	builder.WriteString(tarotCardStyle.Render(reading.Card.Name))
+	builder.WriteString(strongTextStyle.Render(reading.Card.Name))
 
 	if reading.Orientation != "" {
 		builder.WriteString("  ")
@@ -145,7 +169,7 @@ func formatTarotSpreadCard(index int, card daily.TarotSpreadCard) string {
 
 	builder.WriteString(labelStyle.Render(position))
 	builder.WriteString(": ")
-	builder.WriteString(tarotCardStyle.Render(card.Card.Name))
+	builder.WriteString(strongTextStyle.Render(card.Card.Name))
 
 	if card.Orientation != "" {
 		builder.WriteString("  ")

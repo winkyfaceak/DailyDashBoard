@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"io"
 	"math"
 	"math/big"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -186,31 +186,13 @@ func publicDomainSearchURL(page int, limit int) (string, error) {
 }
 
 func getArtworkJSON(endpoint string, target any) error {
-	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-	if err != nil {
-		return fmt.Errorf("error creating artwork request: %w", err)
-	}
+	return getJSON(endpoint, "artwork", func(body io.Reader) error {
+		if err := json.NewDecoder(body).Decode(target); err != nil {
+			return fmt.Errorf("error decoding artwork response: %w", err)
+		}
 
-	req.Header.Set("AIC-User-Agent", "DailyDashBoard")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error sending artwork request: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("artwork API error: %s", resp.Status)
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
-		return fmt.Errorf("error decoding artwork response: %w", err)
-	}
-
-	return nil
+		return nil
+	}, withHeader("AIC-User-Agent", "DailyDashBoard"))
 }
 
 func artworkFromData(data artworkData, config artworkConfig) Artwork {

@@ -3,7 +3,7 @@ package daily
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -121,27 +121,17 @@ func searchITunesSongs(term string) ([]itunesTrack, error) {
 	query.Set("limit", fmt.Sprint(musicSearchLimit))
 	endpoint.RawQuery = query.Encode()
 
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating music request: %w", err)
-	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error sending music request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("music API error: %s", resp.Status)
-	}
-
 	var response itunesSearchResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding music response: %w", err)
+
+	err = getJSON(endpoint.String(), "music", func(body io.Reader) error {
+		if err := json.NewDecoder(body).Decode(&response); err != nil {
+			return fmt.Errorf("error decoding music response: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return usableITunesTracks(response.Results), nil

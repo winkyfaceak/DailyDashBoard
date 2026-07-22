@@ -3,7 +3,7 @@ package daily
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"io"
 	"net/url"
 )
 
@@ -39,28 +39,17 @@ func DictionarySet(language string, word string) ([]DictionaryEntry, error) {
 		url.PathEscape(word),
 	)
 
-	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating dictionary request: %w", err)
-	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", apiUserAgent)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error sending dictionary request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("dictionary API error: %s", resp.Status)
-	}
-
 	var entries []DictionaryEntry
 
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return nil, fmt.Errorf("error decoding dictionary response: %w", err)
+	err := getJSON(endpoint, "dictionary", func(body io.Reader) error {
+		if err := json.NewDecoder(body).Decode(&entries); err != nil {
+			return fmt.Errorf("error decoding dictionary response: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return entries, nil

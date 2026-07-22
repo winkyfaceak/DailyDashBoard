@@ -1,13 +1,25 @@
 package app
 
+import "DailyDashBoard/internal/tui/features"
+
+type menuAction int
+
+const (
+	actionOpenDailyMenu menuAction = iota
+	actionQuit
+	actionBack
+	actionRunFeature
+)
+
 type menu struct {
 	title string
 	items []menuItem
 }
 
 type menuItem struct {
-	label  string
-	action menuAction
+	label   string
+	action  menuAction
+	feature *features.Feature
 }
 
 func (m Model) currentMenu() menu {

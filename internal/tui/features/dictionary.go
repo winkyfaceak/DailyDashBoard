@@ -5,23 +5,44 @@ import (
 	"DailyDashBoard/internal/tui/textutil"
 	"fmt"
 	"strings"
-
-	tea "charm.land/bubbletea/v2"
 )
 
-type DictionaryResultMsg struct {
-	Entries []daily.DictionaryEntry
-	Err     error
+// RandomWord looks up a random word in the dictionary API.
+func RandomWord() *Feature {
+	return &Feature{
+		MenuLabel: "random word",
+		Loading:   "Searching for a random word...",
+		ErrLabel:  "Dictionary",
+		BoxWidth:  70,
+		Fetch: func() (Session, error) {
+			entries, err := daily.RandomDictionarySet("en")
+			if err != nil {
+				return nil, err
+			}
+
+			if len(entries) == 0 {
+				return nil, Notice("No dictionary entries found.")
+			}
+
+			return &DictionarySession{Entry: entries[0]}, nil
+		},
+	}
 }
 
-func FetchRandomDictionaryCmd(language string) tea.Cmd {
-	return func() tea.Msg {
-		entries, err := daily.RandomDictionarySet(language)
+// DictionarySession renders a dictionary entry with optional pronunciation.
+type DictionarySession struct {
+	Entry daily.DictionaryEntry
+}
 
-		return DictionaryResultMsg{
-			Entries: entries,
-			Err:     err,
-		}
+func (s *DictionarySession) View() string {
+	return FormatDictionaryEntry(s.Entry)
+}
+
+func (s *DictionarySession) Audio() Audio {
+	return Audio{
+		URL:           FirstAudio(s.Entry.Phonetics),
+		Label:         "pronunciation",
+		AllowDownload: true,
 	}
 }
 

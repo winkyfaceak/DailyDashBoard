@@ -4,10 +4,9 @@ import (
 	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/terminalimage"
 	"DailyDashBoard/internal/tui/textutil"
+	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 const (
@@ -18,26 +17,50 @@ const (
 	artworkFallbackImageRows = 10
 )
 
-type ArtworkResultMsg struct {
-	Artwork daily.Artwork
-	Image   terminalimage.Image
-	Err     error
+// RandomArtwork shows a random public-domain artwork from the Art Institute
+// of Chicago.
+func RandomArtwork() *Feature {
+	return &Feature{
+		MenuLabel: "random artwork",
+		Loading:   "Fetching artwork...",
+		ErrLabel:  "Artwork",
+		BoxWidth:  84,
+		Fetch: func() (Session, error) {
+			artwork, err := daily.RandomArtwork()
+			if err != nil {
+				return nil, err
+			}
+
+			return &ArtworkSession{
+				Artwork:    artwork,
+				imageState: newImageState(renderArtworkImage(artwork)),
+			}, nil
+		},
+	}
 }
 
-func FetchArtworkCmd() tea.Cmd {
-	return func() tea.Msg {
-		artwork, err := daily.RandomArtwork()
-		if err != nil {
-			return ArtworkResultMsg{Err: err}
-		}
+// ArtworkSession renders an artwork with its image.
+type ArtworkSession struct {
+	imageState
+	Artwork daily.Artwork
+}
 
-		renderedImage := renderArtworkImage(artwork)
+func (s *ArtworkSession) View() string {
+	return FormatArtwork(s.Artwork, s.imageText("Rendering high-quality image..."))
+}
 
-		return ArtworkResultMsg{
-			Artwork: artwork,
-			Image:   renderedImage,
-		}
+func (s *ArtworkSession) Links() []LinkAction {
+	imageURL := PreferredArtworkImageURL(s.Artwork)
+	if imageURL == "" {
+		return nil
 	}
+
+	return []LinkAction{{
+		Key:     "o",
+		URL:     imageURL,
+		Help:    "o to open image",
+		Message: "Opening full artwork image...",
+	}}
 }
 
 func renderArtworkImage(artwork daily.Artwork) terminalimage.Image {
@@ -85,7 +108,7 @@ func PreferredArtworkImageURL(artwork daily.Artwork) string {
 func FormatArtwork(artwork daily.Artwork, renderedImage string) string {
 	var builder strings.Builder
 
-	builder.WriteString(artworkHeaderStyle.Render(
+	builder.WriteString(theme.Header(artworkTextWidth).Render(
 		fmt.Sprintf("%s -> %s -> %s", artwork.Artist, artwork.Title, artwork.Date),
 	))
 	builder.WriteString("\n\n")

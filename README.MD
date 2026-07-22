@@ -5,9 +5,10 @@ a fact, math question, trivia question, tarot card, artwork, news, music, music
 trivia, and a recipe. It is built with Bubble Tea and kept as a terminal-first
 project.
 
-The code is arranged so each part of the app has a clear home. If you want to add
-another daily feature, you should not need to thread your way through one giant
-package.
+The code is arranged so each part of the app has a clear home. Every feature
+lives in exactly two files: an API client in `internal/daily` and a feature file
+in `internal/tui/features`. The app shell is generic and picks features up from
+a registry, so adding a feature never means editing the app package.
 
 ## Run It
 
@@ -35,7 +36,8 @@ go test ./...
 |       |-- features
 |       |-- platform
 |       |-- terminalimage
-|       `-- textutil
+|       |-- textutil
+|       `-- theme
 |-- go.mod
 |-- go.sum
 `-- README.MD
@@ -52,6 +54,10 @@ The content/API layer. This package talks to external services and turns their
 responses into clean Go structs. It should not know anything about Bubble Tea,
 terminal styling, menus, or keyboard shortcuts.
 
+HTTP plumbing is shared: `client.go` provides `getJSON`, which handles request
+creation, headers, status checks, and consistent error messages. Feature files
+only supply the endpoint and a decode function.
+
 Good things to put here:
 
 - API clients
@@ -60,39 +66,37 @@ Good things to put here:
 - random selection logic
 - package-level tests for parsing and behavior
 
-### `internal/tui/app`
-
-The Bubble Tea app shell. This package owns the model, menus, key handling,
-state transitions, and the final view composition.
-
-Good things to put here:
-
-- app state
-- menu actions
-- keyboard shortcuts
-- result message handling
-- deciding which content box appears on screen
-
 ### `internal/tui/features`
 
-The terminal-facing feature layer. Each feature gets a file here with its fetch
-command, result message, and formatter.
+Every dashboard feature in a single file each. `feature.go` defines the shared
+types:
 
-For example:
+- `Feature` — menu label, loading message, error label, box width, and a
+  `Fetch` function
+- `Session` — a fetched result that renders itself with `View()`
+- Optional session interfaces — `AudioSession`, `LinkSession`, `StorySession`,
+  `ImageSession`, and `InteractiveSession` for quizzes that capture the
+  keyboard
 
-- `fact.go`
-- `math.go`
-- `trivia.go`
-- `dictionary.go`
-- `artwork.go`
-- `music.go`
-- `music_trivia.go`
-- `news.go`
-- `recipe.go`
+`Daily()` is the registry: the list of features, in menu order.
 
-This package is the bridge between `internal/daily` and `internal/tui/app`: it
-fetches data from `daily`, formats it for the terminal, and returns Bubble Tea
-messages to the app.
+A feature file declares its `Feature`, its session type, and its formatting.
+Interactive sessions (math, trivia, music trivia) also carry their quiz state
+and key handling, which makes them directly unit-testable — see the
+`*_session_test.go` files.
+
+### `internal/tui/app`
+
+The generic Bubble Tea shell. It renders menus, routes messages, plays audio,
+opens links, and hosts whichever session is active. It never references an
+individual feature; everything it needs comes from the `Feature` struct and the
+session interfaces.
+
+### `internal/tui/theme`
+
+The shared color palette and base lipgloss styles. Both `app` and `features`
+derive their styles from here, so the look stays consistent and colors are
+defined once.
 
 ### `internal/tui/audio`
 
@@ -101,8 +105,8 @@ pause/resume behavior away from the app model.
 
 ### `internal/tui/terminalimage`
 
-Terminal image rendering. Artwork, music, and recipes all use this package
-instead of each feature carrying its own image code.
+Terminal image rendering. Artwork, music, tarot, and recipes all use this
+package instead of each feature carrying its own image code.
 
 ### `internal/tui/platform`
 
@@ -125,7 +129,8 @@ internal/daily/weather.go
 ```
 
 Keep this package focused on data. Define the structs the rest of the app should
-use, fetch the upstream data, clean it up, and return useful errors.
+use, fetch the upstream data with `getJSON`, clean it up, and return useful
+errors.
 
 Try to add tests beside it:
 
@@ -133,7 +138,7 @@ Try to add tests beside it:
 internal/daily/weather_test.go
 ```
 
-### 2. Add the terminal feature
+### 2. Add the feature file
 
 Create a matching file in `internal/tui/features`, for example:
 
@@ -141,28 +146,23 @@ Create a matching file in `internal/tui/features`, for example:
 internal/tui/features/weather.go
 ```
 
-That file usually needs three things:
+That file needs two things:
 
-- a result message type, like `WeatherResultMsg`
-- a fetch command, like `FetchWeatherCmd`
-- a formatter, like `FormatWeather`
+- a constructor returning a `*Feature` (menu label, loading message, error
+  label, box width, and the `Fetch` function)
+- a session type with a `View()` method that formats the result
 
-The command calls `internal/daily`; the formatter turns the result into a string
-ready for the terminal.
+Opt into extra behavior by implementing the optional interfaces: `Audio()` for
+playback, `Links()` for key-triggered links, `RawImage()`/`ImageShown()` (or
+embed `imageState`) for terminal graphics, and `Help()`/`HandleKey()` for
+interactive quizzes.
 
-### 3. Wire it into the app
+### 3. Register it
 
-Update `internal/tui/app`:
-
-- Add a new `menuAction` in `model.go`.
-- Add the visible menu item in `InitialModel`.
-- Add any content or link state the feature needs.
-- Handle the menu action in `interaction.go`.
-- Handle the result message in `update.go`.
-- Render the content in `view.go`.
-
-This is the only place that should know how the new feature fits into the app
-workflow.
+Add the constructor to the `Daily()` registry in
+`internal/tui/features/feature.go`. That is the only wiring step — the menu
+item, fetch command, result handling, help text, and rendering all follow from
+it.
 
 ### 4. Run the checks
 

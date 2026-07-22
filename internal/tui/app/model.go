@@ -1,8 +1,11 @@
+// Package app is the generic bubbletea shell of the dashboard. It renders
+// menus, routes messages, and hosts whichever feature session is active; it
+// never references individual features directly.
 package app
 
 import (
-	"DailyDashBoard/internal/daily"
 	"DailyDashBoard/internal/tui/audio"
+	"DailyDashBoard/internal/tui/features"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -14,64 +17,17 @@ const (
 	dailyMenu
 )
 
-type menuAction int
-
-const (
-	actionOpenDailyMenu menuAction = iota
-	actionQuit
-	actionRandomWord
-	actionRandomFact
-	actionRandomMath
-	actionRandomTrivia
-	actionDailyTarot
-	actionRandomArtwork
-	actionDailyNews
-	actionRandomMusic
-	actionMusicTrivia
-	actionRandomRecipe
-	actionBack
-)
-
 type Model struct {
-	screen      screen
-	menus       map[screen]menu
-	cursor      int
-	message     string
-	content     contentState
-	links       linkState
-	audio       audioState
-	math        mathState
-	trivia      triviaState
-	musicTrivia musicTriviaState
-}
+	screen  screen
+	menus   map[screen]menu
+	cursor  int
+	message string
 
-type contentState struct {
-	Fact        string
-	Math        string
-	Trivia      string
-	Dictionary  string
-	Tarot       asyncContent
-	Artwork     asyncContent
-	News        string
-	Music       asyncContent
-	MusicTrivia string
-	Recipe      asyncContent
-}
+	// feature and session describe the currently displayed result, if any.
+	feature *features.Feature
+	session features.Session
 
-type asyncContent struct {
-	Text    string
-	Pending string
-}
-
-type linkState struct {
-	TarotImages  []string
-	ArtworkImage string
-	MusicImage   string
-	MusicTrack   string
-	NewsStories  []string
-	RecipeImage  string
-	RecipeSource string
-	RecipeVideo  string
+	audio audioState
 }
 
 type audioState struct {
@@ -84,31 +40,20 @@ type audioState struct {
 	RequestID     int
 }
 
-type mathState struct {
-	Active      bool
-	Question    daily.MathQuestion
-	AnswerInput string
-	Submitted   bool
-	Correct     bool
-}
-
-type triviaState struct {
-	Active         bool
-	Question       daily.TriviaQuestion
-	Submitted      bool
-	SelectedChoice int
-}
-
-type musicTriviaState struct {
-	Active     bool
-	Question   daily.MusicTriviaQuestion
-	GuessInput string
-	GuessCount int
-	HintCount  int
-	Solved     bool
-}
-
 func InitialModel() Model {
+	registry := features.Daily()
+
+	dailyItems := make([]menuItem, 0, len(registry)+1)
+	for _, feature := range registry {
+		dailyItems = append(dailyItems, menuItem{
+			label:   feature.MenuLabel,
+			action:  actionRunFeature,
+			feature: feature,
+		})
+	}
+
+	dailyItems = append(dailyItems, menuItem{label: "back", action: actionBack})
+
 	return Model{
 		screen: mainMenu,
 		menus: map[screen]menu{
@@ -121,19 +66,7 @@ func InitialModel() Model {
 			},
 			dailyMenu: {
 				title: "Daily Picks",
-				items: []menuItem{
-					{label: "random word", action: actionRandomWord},
-					{label: "random fact", action: actionRandomFact},
-					{label: "random math question", action: actionRandomMath},
-					{label: "random trivia", action: actionRandomTrivia},
-					{label: "daily tarot", action: actionDailyTarot},
-					{label: "random artwork", action: actionRandomArtwork},
-					{label: "daily news", action: actionDailyNews},
-					{label: "random music", action: actionRandomMusic},
-					{label: "music trivia", action: actionMusicTrivia},
-					{label: "random recipe", action: actionRandomRecipe},
-					{label: "back", action: actionBack},
-				},
+				items: dailyItems,
 			},
 		},
 		cursor: 0,

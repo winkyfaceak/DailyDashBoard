@@ -1,73 +1,14 @@
 package app
 
 import (
+	"DailyDashBoard/internal/tui/features"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
 func (m Model) View() tea.View {
 	currentMenu := m.currentMenu()
-	helpText := "↑/↓ or j/k to move • enter to select • q to quit"
-
-	if m.audio.URL != "" {
-		audioAction := "play"
-		if m.audio.Starting {
-			audioAction = "start"
-		}
-
-		if m.audio.Player != nil {
-			audioAction = "pause"
-			if m.audio.Paused {
-				audioAction = "resume"
-			}
-		}
-
-		helpText += " • p to " + audioAction + " " + m.currentAudioLabel()
-	}
-
-	if len(m.links.TarotImages) > 0 {
-		helpText += " • o to open first tarot card image"
-	}
-
-	if m.links.ArtworkImage != "" {
-		helpText += " • o to open image"
-	}
-
-	if m.links.MusicImage != "" {
-		helpText += " • o to open album art"
-	}
-
-	if m.links.MusicTrack != "" {
-		helpText += " • s to open song"
-	}
-
-	if m.links.RecipeImage != "" {
-		helpText += " • o to open food image"
-	}
-
-	if m.links.RecipeSource != "" {
-		helpText += " • r to open recipe"
-	}
-
-	if m.links.RecipeVideo != "" {
-		helpText += " • v to open video"
-	}
-
-	if len(m.links.NewsStories) > 0 {
-		helpText += " • 1-9 to open story"
-	}
-
-	if m.math.Active {
-		helpText = "type answer • enter to check • backspace to edit • esc to clear • ctrl+c to quit"
-	}
-
-	if m.trivia.Active {
-		helpText = "press 1-4 to answer • esc to clear • ctrl+c to quit"
-	}
-
-	if m.musicTrivia.Active {
-		helpText = "type guess • enter to submit • ctrl+p to play preview • ? for hint • backspace to edit • esc to clear • ctrl+c to quit"
-	}
 
 	var menuItems []string
 
@@ -88,51 +29,17 @@ func (m Model) View() tea.View {
 		titleStyle.Render(currentMenu.title),
 		"",
 		menu,
-		helpStyle.Render(helpText),
+		helpStyle.Render(m.helpText()),
 	}
 
 	if m.message != "" {
 		contentParts = append(contentParts, messageStyle.Render(m.message))
 	}
 
-	if m.content.Fact != "" {
-		contentParts = append(contentParts, factBoxStyle.Render(m.content.Fact))
-	}
-
-	if m.content.Math != "" {
-		contentParts = append(contentParts, mathBoxStyle.Render(m.content.Math))
-	}
-
-	if m.content.Trivia != "" {
-		contentParts = append(contentParts, triviaBoxStyle.Render(m.content.Trivia))
-	}
-
-	if m.content.Dictionary != "" {
-		contentParts = append(contentParts, dictionaryBoxStyle.Render(m.content.Dictionary))
-	}
-
-	if m.content.Tarot.Text != "" {
-		contentParts = append(contentParts, tarotBoxStyle.Render(m.content.Tarot.Text))
-	}
-
-	if m.content.Artwork.Text != "" {
-		contentParts = append(contentParts, artworkBoxStyle.Render(m.content.Artwork.Text))
-	}
-
-	if m.content.News != "" {
-		contentParts = append(contentParts, newsBoxStyle.Render(m.content.News))
-	}
-
-	if m.content.Music.Text != "" {
-		contentParts = append(contentParts, musicBoxStyle.Render(m.content.Music.Text))
-	}
-
-	if m.content.MusicTrivia != "" {
-		contentParts = append(contentParts, musicTriviaBoxStyle.Render(m.content.MusicTrivia))
-	}
-
-	if m.content.Recipe.Text != "" {
-		contentParts = append(contentParts, recipeBoxStyle.Render(m.content.Recipe.Text))
+	if m.session != nil && m.feature != nil {
+		if content := m.session.View(); content != "" {
+			contentParts = append(contentParts, contentBoxStyle(m.feature.BoxWidth).Render(content))
+		}
 	}
 
 	content := lipgloss.JoinVertical(
@@ -143,4 +50,40 @@ func (m Model) View() tea.View {
 	box := boxStyle.Render(content)
 
 	return tea.NewView(appStyle.Render(box))
+}
+
+// helpText builds the help line: interactive sessions supply their own,
+// otherwise the menu help is extended with audio and link hints.
+func (m Model) helpText() string {
+	if session, ok := m.session.(features.InteractiveSession); ok {
+		return session.Help()
+	}
+
+	helpText := "↑/↓ or j/k to move • enter to select • q to quit"
+
+	if m.audio.URL != "" {
+		audioAction := "play"
+		if m.audio.Starting {
+			audioAction = "start"
+		}
+
+		if m.audio.Player != nil {
+			audioAction = "pause"
+			if m.audio.Paused {
+				audioAction = "resume"
+			}
+		}
+
+		helpText += " • p to " + audioAction + " " + m.currentAudioLabel()
+	}
+
+	for _, link := range m.sessionLinks() {
+		helpText += " • " + link.Help
+	}
+
+	if len(m.storyLinks()) > 0 {
+		helpText += " • 1-9 to open story"
+	}
+
+	return helpText
 }
