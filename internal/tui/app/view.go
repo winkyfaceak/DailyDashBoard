@@ -2,12 +2,37 @@ package app
 
 import (
 	"DailyDashBoard/internal/tui/features"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+// minPageLines is the minimum content height kept visible on tiny terminals.
+const minPageLines = 3
+
 func (m Model) View() tea.View {
+	var content string
+	if m.screen == featurePage {
+		content = m.pageView()
+	} else {
+		content = m.menuView()
+	}
+
+	if m.width > 0 && m.height > 0 {
+		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+	}
+
+	view := tea.NewView(content)
+	view.AltScreen = true
+
+	return view
+}
+
+// menuView renders the main or daily menu centered in a bordered box.
+func (m Model) menuView() string {
 	currentMenu := m.currentMenu()
 
 	var menuItems []string
@@ -20,46 +45,143 @@ func (m Model) View() tea.View {
 		}
 	}
 
-	menu := lipgloss.JoinVertical(
-		lipgloss.Left,
-		menuItems...,
-	)
-
-	contentParts := []string{
+	parts := []string{
 		titleStyle.Render(currentMenu.title),
 		"",
-		menu,
-		helpStyle.Render(m.helpText()),
+		lipgloss.JoinVertical(lipgloss.Left, menuItems...),
+		helpStyle.Render("↑/↓ or j/k to move • enter to select • q to quit"),
 	}
 
 	if m.message != "" {
-		contentParts = append(contentParts, messageStyle.Render(m.message))
+		parts = append(parts, messageStyle.Render(m.message))
 	}
+
+	return boxStyle.Render(lipgloss.JoinVertical(lipgloss.Left, parts...))
+}
+
+// pageView renders the dedicated page for the active feature: a loading
+// spinner while fetching, then the session content with its help line.
+// Content taller than the terminal is cropped and can be scrolled.
+func (m Model) pageView() string {
+	if m.loading {
+		return m.loadingView()
+	}
+
+	var parts []string
+	scrollable := false
 
 	if m.session != nil && m.feature != nil {
 		if content := m.session.View(); content != "" {
-			contentParts = append(contentParts, contentBoxStyle(m.feature.BoxWidth).Render(content))
+			box := contentBoxStyle(m.feature.BoxWidth).Render(content)
+			box, scrollable = m.cropToHeight(box)
+			parts = append(parts, box)
 		}
 	}
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Left,
-		contentParts...,
-	)
+	parts = append(parts, helpStyle.Render(m.pageHelpText(scrollable)))
 
-	box := boxStyle.Render(content)
+	if m.message != "" {
+		parts = append(parts, messageStyle.Render(m.message))
+	}
 
-	return tea.NewView(appStyle.Render(box))
+	return lipgloss.JoinVertical(lipgloss.Center, parts...)
 }
 
-// helpText builds the help line: interactive sessions supply their own,
-// otherwise the menu help is extended with audio and link hints.
-func (m Model) helpText() string {
+// pageFooterLines counts the lines rendered below the content box.
+func (m Model) pageFooterLines() int {
+	footer := 1 // help line
+	if m.message != "" {
+		footer++
+	}
+
+	return footer
+}
+
+// cropToHeight limits box to the lines that fit above the footer, applying
+// the current scroll offset. It reports whether the box was cropped.
+func (m Model) cropToHeight(box string) (string, bool) {
+	if m.height <= 0 {
+		return box, false
+	}
+
+	lines := strings.Split(box, "\n")
+
+	available := m.height - m.pageFooterLines()
+	if available < minPageLines {
+		available = minPageLines
+	}
+
+	overflow := len(lines) - available
+	if overflow <= 0 {
+		return box, false
+	}
+
+	scroll := m.scroll
+	if scroll > overflow {
+		scroll = overflow
+	}
+
+	if scroll < 0 {
+		scroll = 0
+	}
+
+	return strings.Join(lines[scroll:scroll+available], "\n"), true
+}
+
+// pageMaxScroll is the largest useful scroll offset for the current page.
+func (m Model) pageMaxScroll() int {
+	if m.loading || m.session == nil || m.feature == nil || m.height <= 0 {
+		return 0
+	}
+
+	content := m.session.View()
+	if content == "" {
+		return 0
+	}
+
+	box := contentBoxStyle(m.feature.BoxWidth).Render(content)
+	lines := strings.Count(box, "\n") + 1
+
+	available := m.height - m.pageFooterLines()
+	if available < minPageLines {
+		available = minPageLines
+	}
+
+	if overflow := lines - available; overflow > 0 {
+		return overflow
+	}
+
+	return 0
+}
+
+func (m Model) loadingView() string {
+	loadingText := "Loading..."
+	if m.feature != nil {
+		loadingText = m.feature.Loading
+	}
+
+	frame := spinnerFrames[m.spinner%len(spinnerFrames)]
+
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		spinnerStyle.Render(frame)+" "+loadingText,
+		"",
+		helpStyle.Render("esc to go back • q to quit"),
+	)
+}
+
+// pageHelpText builds the help line for a feature page: interactive sessions
+// supply their own, otherwise navigation, audio, and link hints are combined.
+func (m Model) pageHelpText(scrollable bool) string {
 	if session, ok := m.session.(features.InteractiveSession); ok {
 		return session.Help()
 	}
 
-	helpText := "↑/↓ or j/k to move • enter to select • q to quit"
+	helpText := "esc to go back"
+
+	if scrollable {
+		helpText += " • ↑/↓ or j/k to scroll"
+	}
 
 	if m.audio.URL != "" {
 		audioAction := "play"
@@ -85,5 +207,5 @@ func (m Model) helpText() string {
 		helpText += " • 1-9 to open story"
 	}
 
-	return helpText
+	return helpText + " • q to quit"
 }

@@ -54,7 +54,7 @@ func (s *MusicTriviaSession) Audio() Audio {
 }
 
 func (s *MusicTriviaSession) Help() string {
-	return "type guess • enter to submit • ctrl+p to play preview • ? for hint • backspace to edit • esc to clear • ctrl+c to quit"
+	return "type guess • enter to submit • ctrl+p to play preview • ? for hint • backspace to edit • esc to menu • ctrl+c to quit"
 }
 
 func (s *MusicTriviaSession) HandleKey(msg tea.KeyPressMsg) KeyResponse {

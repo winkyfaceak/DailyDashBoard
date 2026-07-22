@@ -46,7 +46,7 @@ func (s *MathSession) View() string {
 }
 
 func (s *MathSession) Help() string {
-	return "type answer • enter to check • backspace to edit • esc to clear • ctrl+c to quit"
+	return "type answer • enter to check • backspace to edit • esc to menu • ctrl+c to quit"
 }
 
 func (s *MathSession) HandleKey(msg tea.KeyPressMsg) KeyResponse {

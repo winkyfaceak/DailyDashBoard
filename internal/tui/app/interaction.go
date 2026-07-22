@@ -22,24 +22,20 @@ func openExternalURLCmd(targetURL string) tea.Cmd {
 }
 
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
-
-	if key == "ctrl+c" {
+	if msg.String() == "ctrl+c" {
 		m.stopAudio()
 		return m, tea.Quit
 	}
 
-	if session, ok := m.session.(features.InteractiveSession); ok {
-		return m.handleSessionKey(session, msg)
+	if m.screen == featurePage {
+		return m.handlePageKeyPress(msg)
 	}
 
-	if index, ok := features.NewsLinkIndex(key); ok {
-		if stories := m.storyLinks(); len(stories) > 0 {
-			return m.openStory(stories, index)
-		}
-	}
+	return m.handleMenuKeyPress(msg)
+}
 
-	switch key {
+func (m Model) handleMenuKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
 	case "q":
 		m.stopAudio()
 		return m, tea.Quit
@@ -55,9 +51,6 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.cursor++
 		}
 
-	case "p":
-		return m.toggleAudio()
-
 	case "enter":
 		selected, ok := m.selectedMenuItem()
 		if !ok {
@@ -65,6 +58,50 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 		return m.handleSelection(selected)
+	}
+
+	return m, nil
+}
+
+func (m Model) handlePageKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	// esc always leaves the page, including during quizzes and loading.
+	if key == "esc" {
+		return m.goBackToMenu()
+	}
+
+	if session, ok := m.session.(features.InteractiveSession); ok {
+		return m.handleSessionKey(session, msg)
+	}
+
+	if key == "backspace" {
+		return m.goBackToMenu()
+	}
+
+	if index, ok := features.NewsLinkIndex(key); ok {
+		if stories := m.storyLinks(); len(stories) > 0 {
+			return m.openStory(stories, index)
+		}
+	}
+
+	switch key {
+	case "q":
+		m.stopAudio()
+		return m, tea.Quit
+
+	case "up", "k":
+		if m.scroll > 0 {
+			m.scroll--
+		}
+
+	case "down", "j":
+		if m.scroll < m.pageMaxScroll() {
+			m.scroll++
+		}
+
+	case "p":
+		return m.toggleAudio()
 
 	default:
 		if link, ok := m.linkForKey(key); ok {
@@ -86,16 +123,26 @@ func (m Model) handleSessionKey(session features.InteractiveSession, msg tea.Key
 	}
 
 	if response.Clear {
-		m.stopAudio()
-		m = m.clearResultContent()
-		m.message = response.Message
-
-		return m, nil
+		return m.goBackToMenu()
 	}
 
 	if response.Handled {
 		m.message = response.Message
 	}
+
+	return m, nil
+}
+
+// goBackToMenu leaves the feature page, stopping audio and invalidating any
+// fetch still in flight.
+func (m Model) goBackToMenu() (tea.Model, tea.Cmd) {
+	m = m.clearContent()
+	m.fetchID++
+	m.loading = false
+	m.spinner = 0
+	m.scroll = 0
+	m.screen = dailyMenu
+	m.message = ""
 
 	return m, nil
 }
@@ -166,9 +213,18 @@ func (m Model) handleSelection(selected menuItem) (tea.Model, tea.Cmd) {
 		}
 
 		m = m.clearContent()
-		m.message = selected.feature.Loading
+		m.screen = featurePage
+		m.feature = selected.feature
+		m.loading = true
+		m.spinner = 0
+		m.scroll = 0
+		m.fetchID++
+		m.message = ""
 
-		return m, selected.feature.FetchCmd()
+		return m, tea.Batch(
+			m.fetchFeatureCmd(selected.feature),
+			m.spinnerTickCmd(),
+		)
 	}
 
 	m = m.clearContent()

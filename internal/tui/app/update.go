@@ -5,17 +5,42 @@ import (
 	"DailyDashBoard/internal/tui/features"
 	"errors"
 	"fmt"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
 
+const spinnerInterval = 100 * time.Millisecond
+
 // imageShownMsg fires after a session's raw terminal image has been flushed.
 type imageShownMsg struct{}
 
+// featureResultMsg wraps a feature fetch result with the fetch it belongs
+// to, so results that arrive after the user backed out are discarded.
+type featureResultMsg struct {
+	fetchID int
+	result  features.ResultMsg
+}
+
+type spinnerTickMsg struct {
+	fetchID int
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case features.ResultMsg:
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
+		if maxScroll := m.pageMaxScroll(); m.scroll > maxScroll {
+			m.scroll = maxScroll
+		}
+
+		return m, nil
+	case featureResultMsg:
 		return m.handleFeatureResult(msg)
+	case spinnerTickMsg:
+		return m.handleSpinnerTick(msg)
 	case imageShownMsg:
 		return m.handleImageShown()
 	case audio.StartedMsg:
@@ -31,32 +56,72 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m Model) handleFeatureResult(msg features.ResultMsg) (tea.Model, tea.Cmd) {
-	m = m.clearResultContent()
+// fetchFeatureCmd runs the feature's fetch and tags the result with the
+// current fetch ID.
+func (m Model) fetchFeatureCmd(feature *features.Feature) tea.Cmd {
+	fetchID := m.fetchID
+	fetch := feature.FetchCmd()
 
-	if msg.Err != nil {
+	return func() tea.Msg {
+		result, _ := fetch().(features.ResultMsg)
+
+		return featureResultMsg{
+			fetchID: fetchID,
+			result:  result,
+		}
+	}
+}
+
+func (m Model) spinnerTickCmd() tea.Cmd {
+	fetchID := m.fetchID
+
+	return tea.Tick(spinnerInterval, func(time.Time) tea.Msg {
+		return spinnerTickMsg{fetchID: fetchID}
+	})
+}
+
+func (m Model) handleSpinnerTick(msg spinnerTickMsg) (tea.Model, tea.Cmd) {
+	if !m.loading || msg.fetchID != m.fetchID {
+		return m, nil
+	}
+
+	m.spinner++
+
+	return m, m.spinnerTickCmd()
+}
+
+func (m Model) handleFeatureResult(msg featureResultMsg) (tea.Model, tea.Cmd) {
+	if msg.fetchID != m.fetchID || m.screen != featurePage {
+		return m, nil
+	}
+
+	m = m.clearResultContent()
+	m.loading = false
+	m.scroll = 0
+	m.feature = msg.result.Feature
+
+	if msg.result.Err != nil {
 		var notice features.Notice
-		if errors.As(msg.Err, &notice) {
+		if errors.As(msg.result.Err, &notice) {
 			m.message = string(notice)
 		} else {
-			m.message = fmt.Sprintf("%s error: %v", msg.Feature.ErrLabel, msg.Err)
+			m.message = fmt.Sprintf("%s error: %v", msg.result.Feature.ErrLabel, msg.result.Err)
 		}
 
 		return m, nil
 	}
 
 	m.message = ""
-	m.feature = msg.Feature
-	m.session = msg.Session
+	m.session = msg.result.Session
 
-	if session, ok := msg.Session.(features.AudioSession); ok {
+	if session, ok := msg.result.Session.(features.AudioSession); ok {
 		spec := session.Audio()
 		m.audio.URL = spec.URL
 		m.audio.Label = spec.Label
 		m.audio.AllowDownload = spec.AllowDownload
 	}
 
-	if session, ok := msg.Session.(features.ImageSession); ok {
+	if session, ok := msg.result.Session.(features.ImageSession); ok {
 		if raw := session.RawImage(); raw != "" {
 			return m, tea.Sequence(
 				tea.Raw(raw),

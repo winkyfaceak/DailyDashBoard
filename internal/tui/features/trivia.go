@@ -45,7 +45,7 @@ func (s *TriviaSession) View() string {
 }
 
 func (s *TriviaSession) Help() string {
-	return "press 1-4 to answer • esc to clear • ctrl+c to quit"
+	return "press 1-4 to answer • esc to menu • ctrl+c to quit"
 }
 
 func (s *TriviaSession) HandleKey(msg tea.KeyPressMsg) KeyResponse {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	appStyle = lipgloss.NewStyle().
-			Padding(1, 2)
-
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(theme.Primary).
-			Padding(1, 2).
-			Width(100)
+			Padding(1, 3)
+
+	spinnerStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(theme.Primary)
 
 	titleStyle = theme.Title
 

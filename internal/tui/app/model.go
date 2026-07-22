@@ -15,6 +15,7 @@ type screen int
 const (
 	mainMenu screen = iota
 	dailyMenu
+	featurePage
 )
 
 type Model struct {
@@ -23,9 +24,23 @@ type Model struct {
 	cursor  int
 	message string
 
-	// feature and session describe the currently displayed result, if any.
+	// width and height track the terminal size for full-screen layout.
+	width  int
+	height int
+
+	// feature and session describe the feature page currently shown, if any.
 	feature *features.Feature
 	session features.Session
+
+	// loading is true while a feature fetch is in flight; spinner is the
+	// current animation frame and fetchID discards stale fetch results.
+	loading bool
+	spinner int
+	fetchID int
+
+	// scroll is the page's vertical scroll offset for content taller than
+	// the terminal.
+	scroll int
 
 	audio audioState
 }
