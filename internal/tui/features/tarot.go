@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -20,10 +22,12 @@ const (
 // DailyTarot draws a three-card tarot spread.
 func DailyTarot() *Feature {
 	return &Feature{
-		MenuLabel: "daily tarot",
-		Loading:   "Drawing a three-card tarot spread...",
-		ErrLabel:  "Tarot",
-		BoxWidth:  84,
+		MenuLabel:       "daily tarot",
+		Loading:         "Drawing a three-card tarot spread...",
+		ErrLabel:        "Tarot",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#B185DB"),
+		BackgroundWords: []string{"arcana", "fate", "omen", "fortune", "✦", "☾", "✧"},
 		Fetch: func() (Session, error) {
 			reading, err := daily.RandomTarotReading()
 			if err != nil {

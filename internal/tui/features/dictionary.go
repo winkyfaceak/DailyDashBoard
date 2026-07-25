@@ -5,15 +5,19 @@ import (
 	"DailyDashBoard/internal/tui/textutil"
 	"fmt"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 // RandomWord looks up a random word in the dictionary API.
 func RandomWord() *Feature {
 	return &Feature{
-		MenuLabel: "random word",
-		Loading:   "Searching for a random word...",
-		ErrLabel:  "Dictionary",
-		BoxWidth:  70,
+		MenuLabel:       "random word",
+		Loading:         "Searching for a random word...",
+		ErrLabel:        "Dictionary",
+		BoxWidth:        70,
+		Accent:          lipgloss.Color("#4EA8DE"),
+		BackgroundWords: []string{"lexicon", "syntax", "syllable", "verbatim", "define", "§"},
 		Fetch: func() (Session, error) {
 			entries, err := daily.RandomDictionarySet("en")
 			if err != nil {

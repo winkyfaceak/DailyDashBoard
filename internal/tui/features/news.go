@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -18,10 +20,12 @@ const (
 // DailyNews shows top stories from the configured RSS feeds.
 func DailyNews() *Feature {
 	return &Feature{
-		MenuLabel: "daily news",
-		Loading:   "Fetching daily news...",
-		ErrLabel:  "News",
-		BoxWidth:  92,
+		MenuLabel:       "daily news",
+		Loading:         "Fetching daily news...",
+		ErrLabel:        "News",
+		BoxWidth:        92,
+		Accent:          lipgloss.Color("#6C90C4"),
+		BackgroundWords: []string{"headline", "breaking", "bulletin", "wire", "§"},
 		Fetch: func() (Session, error) {
 			items, err := daily.DailyNews(daily.DefaultNewsFeeds(), newsItemLimit)
 			if err != nil {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -17,10 +18,12 @@ const (
 // MusicTrivia plays a mystery song preview and asks who or what it is.
 func MusicTrivia() *Feature {
 	return &Feature{
-		MenuLabel: "music trivia",
-		Loading:   "Finding a mystery music preview...",
-		ErrLabel:  "Music trivia",
-		BoxWidth:  84,
+		MenuLabel:       "music trivia",
+		Loading:         "Finding a mystery music preview...",
+		ErrLabel:        "Music trivia",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#8C7AE6"),
+		BackgroundWords: []string{"name that tune", "beat", "lyric", "♪", "?"},
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomMusicTriviaQuestion()
 			if err != nil {

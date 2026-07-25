@@ -16,13 +16,14 @@ const minPageLines = 3
 func (m Model) View() tea.View {
 	var content string
 	if m.screen == featurePage {
+		// pageView composites its own full-screen background and centering.
 		content = m.pageView()
 	} else {
 		content = m.menuView()
-	}
 
-	if m.width > 0 && m.height > 0 {
-		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+		if m.width > 0 && m.height > 0 {
+			content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+		}
 	}
 
 	view := tea.NewView(content)
@@ -72,7 +73,7 @@ func (m Model) pageView() string {
 
 	if m.session != nil && m.feature != nil {
 		if content := m.session.View(); content != "" {
-			box := contentBoxStyle(m.feature.BoxWidth).Render(content)
+			box := contentBoxStyle(m.feature.BoxWidth, m.feature.Accent).Render(content)
 			box, scrollable = m.cropToHeight(box)
 			parts = append(parts, box)
 		}
@@ -84,7 +85,18 @@ func (m Model) pageView() string {
 		parts = append(parts, messageStyle.Render(m.message))
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, parts...)
+	return m.compositePage(lipgloss.JoinVertical(lipgloss.Center, parts...))
+}
+
+// compositePage centers content within the terminal and, when a feature is
+// active, layers it over that feature's scattered background. Falls back to
+// plain content when the terminal size isn't known yet.
+func (m Model) compositePage(content string) string {
+	if m.width <= 0 || m.height <= 0 || m.feature == nil {
+		return content
+	}
+
+	return composeBackground(m.width, m.height, content, m.feature.BackgroundWords, m.feature.Accent)
 }
 
 // pageFooterLines counts the lines rendered below the content box.
@@ -139,7 +151,7 @@ func (m Model) pageMaxScroll() int {
 		return 0
 	}
 
-	box := contentBoxStyle(m.feature.BoxWidth).Render(content)
+	box := contentBoxStyle(m.feature.BoxWidth, m.feature.Accent).Render(content)
 	lines := strings.Count(box, "\n") + 1
 
 	available := m.height - m.pageFooterLines()
@@ -156,18 +168,23 @@ func (m Model) pageMaxScroll() int {
 
 func (m Model) loadingView() string {
 	loadingText := "Loading..."
+	spinner := spinnerStyle
+
 	if m.feature != nil {
 		loadingText = m.feature.Loading
+		spinner = spinner.Foreground(m.feature.Accent)
 	}
 
 	frame := spinnerFrames[m.spinner%len(spinnerFrames)]
 
-	return lipgloss.JoinVertical(
+	content := lipgloss.JoinVertical(
 		lipgloss.Center,
-		spinnerStyle.Render(frame)+" "+loadingText,
+		spinner.Render(frame)+" "+loadingText,
 		"",
 		helpStyle.Render("esc to go back • q to quit"),
 	)
+
+	return m.compositePage(content)
 }
 
 // pageHelpText builds the help line for a feature page: interactive sessions

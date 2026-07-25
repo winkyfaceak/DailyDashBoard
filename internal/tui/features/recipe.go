@@ -7,6 +7,8 @@ import (
 	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -18,10 +20,12 @@ const (
 // RandomRecipe shows a random recipe from TheMealDB.
 func RandomRecipe() *Feature {
 	return &Feature{
-		MenuLabel: "random recipe",
-		Loading:   "Finding a random recipe...",
-		ErrLabel:  "Recipe",
-		BoxWidth:  84,
+		MenuLabel:       "random recipe",
+		Loading:         "Finding a random recipe...",
+		ErrLabel:        "Recipe",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#D98E4A"),
+		BackgroundWords: []string{"simmer", "whisk", "spice", "recipe", "❦"},
 		Fetch: func() (Session, error) {
 			recipe, err := daily.RandomRecipe()
 			if err != nil {

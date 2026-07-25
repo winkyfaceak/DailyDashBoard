@@ -5,6 +5,8 @@ import (
 	"DailyDashBoard/internal/tui/textutil"
 	"DailyDashBoard/internal/tui/theme"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 const factTextWidth = 70
@@ -12,10 +14,12 @@ const factTextWidth = 70
 // RandomFact shows a random fact from the useless facts API.
 func RandomFact() *Feature {
 	return &Feature{
-		MenuLabel: "random fact",
-		Loading:   "Fetching a random fact...",
-		ErrLabel:  "Fact",
-		BoxWidth:  84,
+		MenuLabel:       "random fact",
+		Loading:         "Fetching a random fact...",
+		ErrLabel:        "Fact",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#F2C14E"),
+		BackgroundWords: []string{"curious", "truth", "did you know", "trivia", "✦"},
 		Fetch: func() (Session, error) {
 			fact, err := daily.RandomFact("en")
 			if err != nil {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -18,10 +19,12 @@ const (
 // RandomMath poses a random arithmetic question.
 func RandomMath() *Feature {
 	return &Feature{
-		MenuLabel: "random math question",
-		Loading:   "Writing a random math question...",
-		ErrLabel:  "Math",
-		BoxWidth:  78,
+		MenuLabel:       "random math question",
+		Loading:         "Writing a random math question...",
+		ErrLabel:        "Math",
+		BoxWidth:        78,
+		Accent:          lipgloss.Color("#5BC0BE"),
+		BackgroundWords: []string{"π", "∞", "∑", "solve", "equals", "√"},
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomMathQuestion()
 			if err != nil {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"DailyDashBoard/internal/tui/theme"
+	"image/color"
 
 	"charm.land/lipgloss/v2"
 )
@@ -32,11 +33,12 @@ var (
 			MarginTop(1)
 )
 
-// contentBoxStyle is the bordered box a feature result renders in.
-func contentBoxStyle(width int) lipgloss.Style {
+// contentBoxStyle is the bordered box a feature result renders in, bordered
+// in the feature's own accent color.
+func contentBoxStyle(width int, accent color.Color) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(theme.Success).
+		BorderForeground(accent).
 		Padding(1, 2).
 		MarginTop(1).
 		Width(width)

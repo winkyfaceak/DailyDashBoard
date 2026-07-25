@@ -7,6 +7,8 @@
 package features
 
 import (
+	"image/color"
+
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -20,6 +22,11 @@ type Feature struct {
 	ErrLabel string
 	// BoxWidth is the width of the content box the result renders in.
 	BoxWidth int
+	// Accent colors this feature's content box border and its scattered
+	// page background.
+	Accent color.Color
+	// BackgroundWords are words/glyphs scattered behind the content box.
+	BackgroundWords []string
 	// Fetch loads the feature's data and returns a Session for it. It runs
 	// inside a tea.Cmd goroutine, so it may block on the network.
 	Fetch func() (Session, error)

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const triviaTextWidth = 70
@@ -15,10 +16,12 @@ const triviaTextWidth = 70
 // RandomTrivia poses a multiple-choice trivia question.
 func RandomTrivia() *Feature {
 	return &Feature{
-		MenuLabel: "random trivia",
-		Loading:   "Fetching a trivia question...",
-		ErrLabel:  "Trivia",
-		BoxWidth:  84,
+		MenuLabel:       "random trivia",
+		Loading:         "Fetching a trivia question...",
+		ErrLabel:        "Trivia",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#FF8C42"),
+		BackgroundWords: []string{"quiz", "guess", "score", "?", "!"},
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomTriviaQuestion()
 			if err != nil {

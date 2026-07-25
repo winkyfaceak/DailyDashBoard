@@ -6,6 +6,8 @@ import (
 	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -17,10 +19,12 @@ const (
 // RandomMusic picks a random genre and song from iTunes.
 func RandomMusic() *Feature {
 	return &Feature{
-		MenuLabel: "random music",
-		Loading:   "Finding a genre and song...",
-		ErrLabel:  "Music",
-		BoxWidth:  84,
+		MenuLabel:       "random music",
+		Loading:         "Finding a genre and song...",
+		ErrLabel:        "Music",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#3FB68C"),
+		BackgroundWords: []string{"melody", "tempo", "chord", "♪", "♫"},
 		Fetch: func() (Session, error) {
 			pick, err := daily.RandomMusic()
 			if err != nil {

@@ -7,6 +7,8 @@ import (
 	"DailyDashBoard/internal/tui/theme"
 	"fmt"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -21,10 +23,12 @@ const (
 // of Chicago.
 func RandomArtwork() *Feature {
 	return &Feature{
-		MenuLabel: "random artwork",
-		Loading:   "Fetching artwork...",
-		ErrLabel:  "Artwork",
-		BoxWidth:  84,
+		MenuLabel:       "random artwork",
+		Loading:         "Fetching artwork...",
+		ErrLabel:        "Artwork",
+		BoxWidth:        84,
+		Accent:          lipgloss.Color("#E8739F"),
+		BackgroundWords: []string{"canvas", "palette", "muse", "brush", "✎"},
 		Fetch: func() (Session, error) {
 			artwork, err := daily.RandomArtwork()
 			if err != nil {
