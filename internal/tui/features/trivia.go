@@ -22,6 +22,8 @@ func RandomTrivia() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#FF8C42"),
 		BackgroundWords: []string{"quiz", "guess", "score", "?", "!"},
+		Icon:            "?",
+		Tagline:         "One question, four choices, no notes.",
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomTriviaQuestion()
 			if err != nil {

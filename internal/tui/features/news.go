@@ -26,6 +26,8 @@ func DailyNews() *Feature {
 		BoxWidth:        92,
 		Accent:          lipgloss.Color("#6C90C4"),
 		BackgroundWords: []string{"headline", "breaking", "bulletin", "wire", "§"},
+		Icon:            "§",
+		Tagline:         "Top headlines from around the web.",
 		Fetch: func() (Session, error) {
 			items, err := daily.DailyNews(daily.DefaultNewsFeeds(), newsItemLimit)
 			if err != nil {

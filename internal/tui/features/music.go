@@ -25,6 +25,8 @@ func RandomMusic() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#3FB68C"),
 		BackgroundWords: []string{"melody", "tempo", "chord", "♪", "♫"},
+		Icon:            "♪",
+		Tagline:         "A genre and a song worth discovering.",
 		Fetch: func() (Session, error) {
 			pick, err := daily.RandomMusic()
 			if err != nil {

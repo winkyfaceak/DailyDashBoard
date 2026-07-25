@@ -28,6 +28,8 @@ func DailyTarot() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#B185DB"),
 		BackgroundWords: []string{"arcana", "fate", "omen", "fortune", "✦", "☾", "✧"},
+		Icon:            "☾",
+		Tagline:         "A three-card spread to read your day.",
 		Fetch: func() (Session, error) {
 			reading, err := daily.RandomTarotReading()
 			if err != nil {

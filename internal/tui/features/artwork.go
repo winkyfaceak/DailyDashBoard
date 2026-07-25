@@ -29,6 +29,8 @@ func RandomArtwork() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#E8739F"),
 		BackgroundWords: []string{"canvas", "palette", "muse", "brush", "✎"},
+		Icon:            "✎",
+		Tagline:         "A public-domain masterpiece, picked at random.",
 		Fetch: func() (Session, error) {
 			artwork, err := daily.RandomArtwork()
 			if err != nil {

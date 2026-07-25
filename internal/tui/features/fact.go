@@ -20,6 +20,8 @@ func RandomFact() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#F2C14E"),
 		BackgroundWords: []string{"curious", "truth", "did you know", "trivia", "✦"},
+		Icon:            "✦",
+		Tagline:         "A stray bit of trivia for the day.",
 		Fetch: func() (Session, error) {
 			fact, err := daily.RandomFact("en")
 			if err != nil {

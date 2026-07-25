@@ -18,6 +18,8 @@ func RandomWord() *Feature {
 		BoxWidth:        70,
 		Accent:          lipgloss.Color("#4EA8DE"),
 		BackgroundWords: []string{"lexicon", "syntax", "syllable", "verbatim", "define", "§"},
+		Icon:            "❝",
+		Tagline:         "A word worth knowing, defined.",
 		Fetch: func() (Session, error) {
 			entries, err := daily.RandomDictionarySet("en")
 			if err != nil {

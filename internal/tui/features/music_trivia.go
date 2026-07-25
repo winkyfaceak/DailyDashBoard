@@ -24,6 +24,8 @@ func MusicTrivia() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#8C7AE6"),
 		BackgroundWords: []string{"name that tune", "beat", "lyric", "♪", "?"},
+		Icon:            "♫",
+		Tagline:         "Name the tune from a mystery preview.",
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomMusicTriviaQuestion()
 			if err != nil {

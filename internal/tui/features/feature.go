@@ -27,6 +27,11 @@ type Feature struct {
 	Accent color.Color
 	// BackgroundWords are words/glyphs scattered behind the content box.
 	BackgroundWords []string
+	// Icon is a single glyph shown next to this feature's daily menu entry.
+	Icon string
+	// Tagline is a short blurb shown under the daily menu title when this
+	// feature's entry is highlighted.
+	Tagline string
 	// Fetch loads the feature's data and returns a Session for it. It runs
 	// inside a tea.Cmd goroutine, so it may block on the network.
 	Fetch func() (Session, error)

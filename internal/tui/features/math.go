@@ -25,6 +25,8 @@ func RandomMath() *Feature {
 		BoxWidth:        78,
 		Accent:          lipgloss.Color("#5BC0BE"),
 		BackgroundWords: []string{"π", "∞", "∑", "solve", "equals", "√"},
+		Icon:            "∑",
+		Tagline:         "A quick sum to warm up the brain.",
 		Fetch: func() (Session, error) {
 			question, err := daily.RandomMathQuestion()
 			if err != nil {

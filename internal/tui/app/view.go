@@ -3,6 +3,7 @@ package app
 import (
 	"DailyDashBoard/internal/tui/features"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -16,14 +17,10 @@ const minPageLines = 3
 func (m Model) View() tea.View {
 	var content string
 	if m.screen == featurePage {
-		// pageView composites its own full-screen background and centering.
 		content = m.pageView()
 	} else {
+		// menuView composites its own full-screen background and centering.
 		content = m.menuView()
-
-		if m.width > 0 && m.height > 0 {
-			content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
-		}
 	}
 
 	view := tea.NewView(content)
@@ -32,32 +29,82 @@ func (m Model) View() tea.View {
 	return view
 }
 
-// menuView renders the main or daily menu centered in a bordered box.
+// menuView renders the main or daily menu centered in a bordered box, along
+// with a background scattered from whichever feature is currently
+// highlighted (or the app's generic ambience when none is).
 func (m Model) menuView() string {
 	currentMenu := m.currentMenu()
+	accent, words := m.menuAmbience()
 
 	var menuItems []string
-
 	for i, choice := range currentMenu.items {
-		if m.cursor == i {
-			menuItems = append(menuItems, selectedItemStyle.Render("> "+choice.label))
-		} else {
-			menuItems = append(menuItems, normalItemStyle.Render("  "+choice.label))
-		}
+		menuItems = append(menuItems, m.renderMenuItem(choice, i == m.cursor))
 	}
 
-	parts := []string{
-		titleStyle.Render(currentMenu.title),
-		"",
+	parts := []string{titleStyle.Render(currentMenu.title)}
+
+	if subtitle := m.menuSubtitle(); subtitle != "" {
+		parts = append(parts, subtitleStyle.Render(subtitle))
+	} else {
+		parts = append(parts, "")
+	}
+
+	parts = append(parts,
 		lipgloss.JoinVertical(lipgloss.Left, menuItems...),
 		helpStyle.Render("↑/↓ or j/k to move • enter to select • q to quit"),
-	}
+	)
 
 	if m.message != "" {
 		parts = append(parts, messageStyle.Render(m.message))
 	}
 
-	return boxStyle.Render(lipgloss.JoinVertical(lipgloss.Left, parts...))
+	box := menuBoxStyle(accent).Render(lipgloss.JoinVertical(lipgloss.Left, parts...))
+
+	if m.width <= 0 || m.height <= 0 {
+		return box
+	}
+
+	return composeBackground(m.width, m.height, box, words, accent)
+}
+
+// renderMenuItem renders one menu row: an icon in the feature's accent color
+// when the item has one, and a bold accent-filled pill when selected.
+func (m Model) renderMenuItem(item menuItem, selected bool) string {
+	icon := ""
+	if item.feature != nil && item.feature.Icon != "" {
+		icon = item.feature.Icon + " "
+	}
+
+	if selected {
+		style := selectedItemStyle
+		if item.feature != nil {
+			style = selectedFeatureItemStyle(item.feature.Accent)
+		}
+
+		return style.Render("> " + icon + item.label)
+	}
+
+	if item.feature != nil {
+		icon = featureIconStyle(item.feature.Accent).Render(icon)
+	}
+
+	return normalItemStyle.Render("  " + icon + item.label)
+}
+
+// menuSubtitle returns the muted line shown under the menu title: today's
+// date on the main menu, or the highlighted feature's tagline on the daily
+// menu.
+func (m Model) menuSubtitle() string {
+	switch m.screen {
+	case mainMenu:
+		return time.Now().Format("Monday, January 2")
+	case dailyMenu:
+		if selected, ok := m.selectedMenuItem(); ok && selected.feature != nil {
+			return selected.feature.Tagline
+		}
+	}
+
+	return ""
 }
 
 // pageView renders the dedicated page for the active feature: a loading

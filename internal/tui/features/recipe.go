@@ -26,6 +26,8 @@ func RandomRecipe() *Feature {
 		BoxWidth:        84,
 		Accent:          lipgloss.Color("#D98E4A"),
 		BackgroundWords: []string{"simmer", "whisk", "spice", "recipe", "❦"},
+		Icon:            "❦",
+		Tagline:         "Something new to cook tonight.",
 		Fetch: func() (Session, error) {
 			recipe, err := daily.RandomRecipe()
 			if err != nil {
